@@ -1,0 +1,50 @@
+{
+  "name": "@elven-observability/docs-skill",
+  "version": "0.1.0",
+  "description": "Anthropic skill-creator pack codifying Elven Works observability documentation standards (templates, vocabulary, lint).",
+  "license": "MIT",
+  "author": "Elven Works <docs@elven.works>",
+  "homepage": "https://github.com/elven-observability/elven-docs#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elven-observability/elven-docs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/elven-observability/elven-docs/issues"
+  },
+  "bin": {
+    "elven-docs-skill": "./bin/elven-docs-skill.js"
+  },
+  "files": [
+    "bin/",
+    "skill/",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "bash tests/lint.test.sh",
+    "lint:fixtures": "bash skill/scripts/lint.sh tests/fixtures/pass-*.md",
+    "prepack": "chmod +x bin/elven-docs-skill.js skill/scripts/lint.sh skill/scripts/backfill-frontmatter.sh"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "claude-code",
+    "anthropic",
+    "skill",
+    "documentation",
+    "elven",
+    "elven-observability",
+    "observability",
+    "opentelemetry",
+    "lgtm",
+    "pt-br",
+    "lint",
+    "markdown"
+  ]
+}

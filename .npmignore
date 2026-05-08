@@ -1,0 +1,11 @@
+.git/
+.gitignore
+.github/
+.idea/
+.vscode/
+.DS_Store
+node_modules/
+tests/
+*.tgz
+*.log
+coverage/
