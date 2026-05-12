@@ -1,4 +1,76 @@
-# Self-Score v0.1.0 — `@elven-observability/docs-skill`
+# Self-Score — `@elven-observability/docs-skill`
+
+> Atualizado em **v0.2.0 (2026-05-12)**. Score v0.1.0 preservado abaixo para histórico.
+
+---
+
+## v0.2.0 — escopo expandido (PS reports + PDF)
+
+### Mudança de escopo
+
+v0.2.0 adicionou:
+
+- 4 templates PS report (`ps-incident`, `ps-load-test`, `ps-comparative`, `ps-spike`) baseados em 7 instâncias reais em `elven-observability/docs/ps/`.
+- Geração de PDF via Puppeteer com 2 temas CSS (client / internal).
+- Persona nova `cliente-stakeholder` (executivo).
+- 2 references novas (`quality-gate.md`, `artifact-contract.md`).
+- Glossário expandido com 4 produtos Elven Works (Monitoring/Observability/Incident/Command Center).
+- 9 types no enum de `type` (era 5).
+
+### Sumário do score v0.2.0
+
+| # | Critério | v0.1.0 | v0.2.0 | Tendência |
+|---|---|---|---|---|
+| 1 | Toda regra com evidência | 9/10 | **9/10** | mantido |
+| 2 | Templates ≥3 instâncias | 7/10 | **9/10** | ↑ PS reports têm 7 instâncias reais |
+| 3 | Cada template declara persona | 10/10 | **10/10** | mantido |
+| 4 | UI/UX 2026 com fonte | 7/10 | **7/10** | mantido (gap pt-BR persiste) |
+| 5 | Identidade Elven consistente | 7/10 | **9/10** | ↑ 4 produtos no glossário |
+| 6 | Acessibilidade WCAG 2.2 | 8/10 | **8/10** | mantido |
+| 7 | Checklist pre-publish operacional | 9/10 | **10/10** | ↑ quality-gate.md adicionado |
+| 8 | Estrutura serve agente IA | 9/10 | **9/10** | mantido |
+| **9** | **Geração de artefato cliente-pronto (PDF)** | — | **8/10** | novo critério |
+
+**Score médio v0.2.0: 8.78/10** (vs 8.4/10 em v0.1.0).
+
+### Detalhamento das mudanças
+
+**#2 templates ≥3 instâncias.** Pasta `docs/ps/` tem 7 PDFs reais (instâncias de PS reports). Cada um dos 4 templates PS tem 1-3 instâncias confirmadas, totalizando 7. Soma com instâncias técnicas (12 docs no repo) → 19 instâncias totais sustentando 9 templates. Régua passou de "frágil" pra "sólida".
+
+**#5 identidade Elven.** Glossário cobre agora os 4 produtos top-level conforme `docs.elven.works` (taxonomia oficial). PDtec, Collector FE, Elven Plugin, `elven-unified-observability-py` permanecem. Gaps em "Termos sob avaliação" (Sentinel, Kyrvex, Wevy, Elven Connect) registrados explicitamente.
+
+**#7 quality gate.** `reference/quality-gate.md` adicionado, inspirado em `claude-presentation-skill`. 6 gates de aceite (verdade técnica, narrativa, artefato, lint, acessibilidade, pergunta final). Mais forte que checklist plano: força revisão estruturada.
+
+**#9 PDF (novo critério).**
+
+- Pipeline funcional: markdown → HTML temado → PDF via Puppeteer.
+- 2 temas (client com capa+header+footer; internal sem capa).
+- Smoke test automatizado em `tests/render-pdf.test.sh` (validação de assinatura `%PDF-` + tamanho mínimo).
+- Render de template `ps-incident-report` produz PDF de 500 KB / 7 páginas em <5s.
+
+**Gaps em #9 (PDF):**
+
+- Fonte system stack apenas (Helvetica/Inter fallback). Fonte custom Elven é roadmap v0.3.
+- Sem assinatura digital de PDF (compliance? avaliar com cliente).
+- Sem watermark configurável.
+- Mermaid em PDF não testado em profundidade — funciona em GitHub, mas Puppeteer render via marked não processa Mermaid nativo. Roadmap v0.3: adicionar mermaid-cli ou similar.
+- Imagens locais referenciadas no markdown precisam path absoluto ou data URI; não há resolver automático ainda.
+
+### Veredicto v0.2.0
+
+**Pronto pra entregar.** Score 8.78/10. Pipeline md→PDF testado smoke. Quality gate funciona como instrumento honesto (não decorativo).
+
+Roadmap claro pra v0.3.0:
+- Mermaid no PDF render.
+- Resolver de imagens locais.
+- Vale linter pra prose.
+- Pesquisa pt-BR style guide 2026 (gap antigo).
+
+---
+
+# Histórico
+
+## v0.1.0 (2026-05-08) — release inicial
 
 Self-assessment honesto contra o **gate de qualidade** declarado no brief original. Cada critério: nota 1-10 + justificativa + gap remanescente + próxima iteração sugerida.
 

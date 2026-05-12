@@ -13,7 +13,7 @@
 
 set -uo pipefail
 
-VALID_TYPES="language-instrumentation-guide platform-instrumentation-guide stack-installation-guide frontend-sdk-guide pdtec-spec"
+VALID_TYPES="language-instrumentation-guide platform-instrumentation-guide stack-installation-guide frontend-sdk-guide pdtec-spec ps-incident-report ps-load-test-report ps-comparative-report ps-spike-report"
 REQUIRED_FRONTMATTER_FIELDS="title slug type audience last_reviewed status owner"
 
 frontmatter_only=0
@@ -177,6 +177,17 @@ lint_file() {
       # pode dispensar
       print_pass
       ;;
+    ps-incident-report|ps-load-test-report|ps-comparative-report|ps-spike-report)
+      # PS reports usam Sumário; verificar que existe "Sumário executivo"
+      # como parte da ossatura (não TOC), e que TOC '## Sumário' está presente.
+      if ! grep -qE '^## Sumário$' "$file"; then
+        print_fail "6" "PS report deve ter '## Sumário' (TOC)"
+      elif ! grep -qE '^## Sumário executivo$' "$file"; then
+        print_fail "6" "PS report deve ter '## Sumário executivo' (overview pra stakeholder)"
+      else
+        print_pass
+      fi
+      ;;
     *)
       if ! grep -qE '^## Sumário$' "$file"; then
         print_fail "6" "type ${type_value} deve ter '## Sumário'"
@@ -187,18 +198,26 @@ lint_file() {
   esac
 
   # Item 7 — Quick Start canônico (S maiúsculo, em-dash em variantes)
-  local q_fail=0
-  if grep -qE '^## Quick start' "$file"; then
-    print_fail "7" "encontrado 'Quick start' minúsculo (use 'Quick Start')"
-    q_fail=1
-  fi
-  if grep -qE '^## Quick Start - [^-]' "$file"; then
-    print_fail "7" "variante de Quick Start usando hífen simples (use em-dash '—')"
-    q_fail=1
-  fi
-  if [ $q_fail -eq 0 ]; then
-    print_pass
-  fi
+  # PS reports não têm Quick Start; pulam.
+  case "$type_value" in
+    ps-incident-report|ps-load-test-report|ps-comparative-report|ps-spike-report)
+      print_pass
+      ;;
+    *)
+      local q_fail=0
+      if grep -qE '^## Quick start' "$file"; then
+        print_fail "7" "encontrado 'Quick start' minúsculo (use 'Quick Start')"
+        q_fail=1
+      fi
+      if grep -qE '^## Quick Start - [^-]' "$file"; then
+        print_fail "7" "variante de Quick Start usando hífen simples (use em-dash '—')"
+        q_fail=1
+      fi
+      if [ $q_fail -eq 0 ]; then
+        print_pass
+      fi
+      ;;
+  esac
 
   # Item 8 — toda fence ABERTA tem tag de linguagem
   # State machine: alterna in_fence a cada ``` no início de linha.

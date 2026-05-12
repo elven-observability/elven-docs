@@ -1,21 +1,27 @@
 ---
 name: elven-docs-skill
 description: |
-  Padroniza criação e revisão de documentação técnica do repositório
-  elven-observability/docs (guias de instrumentação por linguagem, instrumentação
-  por plataforma/orquestrador, instalação de stack, SDK frontend, e specs PDtec).
-  Aplica frontmatter YAML obrigatório, vocabulário fechado de seções, callouts em
-  blockquote tipado, code fences com linguagem declarada, diagramas Mermaid, e gate
-  de qualidade automatizado (10 itens binários). Use SEMPRE que o usuário pedir
-  "criar guia", "documentar instrumentação", "doc Elven", "guia de instalação Elven",
-  "guia PDtec", ou quando for redigir/revisar qualquer arquivo .md em
-  elven-observability/docs. NÃO use para ADRs, runbooks, post-mortems, RFCs ou
-  release notes — esses tipos são out of scope v1.
+  Padroniza criação, revisão e renderização (PDF) de documentação técnica e
+  relatórios de Professional Services da Elven Works. Cobre 9 tipos canônicos:
+  guias de instrumentação (linguagem, plataforma/orquestrador), instalação de
+  stack, SDK frontend, specs PDtec, e 4 PS reports (incidente, teste de carga,
+  comparativo, spike). Aplica frontmatter YAML obrigatório, vocabulário fechado
+  de seções, callouts em blockquote tipado, code fences com linguagem declarada,
+  diagramas Mermaid, gate de qualidade automatizado (10 itens binários do lint),
+  e renderização markdown→PDF com tema Elven (capa, header, footer) via
+  Puppeteer. Use SEMPRE que o usuário pedir "criar guia", "documentar
+  instrumentação", "doc Elven", "guia de instalação Elven", "guia PDtec",
+  "relatório de incidente", "relatório de teste de carga", "relatório
+  comparativo", "relatório de spike", "gerar PDF Elven", ou quando for
+  redigir/revisar qualquer .md em elven-observability/docs ou
+  elven-observability/docs/ps. NÃO use para tradução pt→en, README de
+  subprojetos, ou docs de produtos Elven (Monitoring/Incident/Command Center)
+  cuja estrutura ainda não tem 3+ instâncias reais.
 ---
 
 # Elven Docs Skill
 
-Skill que produz docs técnicas Elven Works no padrão da casa, sem improvisar quando o tipo não existe no repo.
+Skill que produz e renderiza docs técnicas + PS reports Elven Works no padrão da casa, sem improvisar quando o tipo não existe no repo.
 
 ---
 
@@ -23,9 +29,9 @@ Skill que produz docs técnicas Elven Works no padrão da casa, sem improvisar q
 
 Pare e responda:
 
-1. **Onde o doc vai morar?** Se NÃO for em `elven-observability/docs/`, este skill não se aplica. Pare.
-2. **É doc de produto Elven (instrumentação, instalação, SDK, PDtec)?** Se for ADR, runbook, post-mortem, RFC, release notes — **out of scope v1**. Responda ao usuário: "Este skill cobre apenas guias técnicos de produto (5 tipos). Esse pedido é fora de escopo. Sugiro abrir issue no repo `elven-docs-skill` solicitando o template novo, ou escrever sem skill por enquanto."
-3. **É tradução pt→en?** Out of scope v1. Repo é pt-BR-only.
+1. **Onde o doc vai morar?** Se for `elven-observability/docs/` (técnico) OU `elven-observability/docs/ps/` (relatório pra cliente) → este skill se aplica. Outros caminhos → pare.
+2. **É doc de produto Elven (instrumentação, instalação, SDK, PDtec) OU PS report (incidente/carga/comparativo/spike)?** Se sim, escolha o template apropriado abaixo. Se o tipo não cai em nenhum dos 9 templates → **out of scope v0.2.0**. Responda: "Este skill cobre 9 tipos canônicos. Para tipos novos (postmortem oficial Elven Incident, runbook Command Center, etc.), abra issue no repo `elven-docs-skill`."
+3. **É tradução pt→en?** Out of scope. Repo é pt-BR-only.
 
 Se passou nas 3 verificações, siga abaixo.
 
@@ -35,14 +41,26 @@ Se passou nas 3 verificações, siga abaixo.
 
 ### Passo 1 — Identificar o tipo do doc
 
-Árvore de decisão. Pergunta única: **"O que esse doc ensina?"**
+Árvore de decisão. Pergunta única: **"O que esse doc/relatório entrega?"**
+
+**Docs técnicos (vão em `elven-observability/docs/`):**
 
 - **a)** Como instrumentar UMA linguagem específica (Java, Python, .NET, Node.js, Go, Ruby, …) → **`language-instrumentation-guide`**
 - **b)** Como instrumentar via UMA plataforma/orquestrador (K8s Operator, AWS Lambda layers, Serverless plugin, ECS task helper, …) → **`platform-instrumentation-guide`**
 - **c)** Como o cliente INSTALA componente Elven na infra dele (stack LGTM, Collector FE, Beyla standalone, …) → **`stack-installation-guide`**
 - **d)** Como usar SDK frontend através de N frameworks (React, Next, Angular, Vue, …) → **`frontend-sdk-guide`**
 - **e)** Spec curta (<300 linhas) específica de cliente PDtec (variáveis ECS, Dockerfile patch, copy-paste, …) → **`pdtec-spec`**
-- **f)** Nenhuma das anteriores → **PARE**. Abra issue no repo `elven-docs-skill`. Não improvise template.
+
+**PS reports (vão em `elven-observability/docs/ps/` e geram PDF temado):**
+
+- **f)** Relatório formal de incidente para cliente → **`ps-incident-report`**
+- **g)** Relatório de teste de carga executado pela Elven → **`ps-load-test-report`**
+- **h)** Comparativo entre dois cenários/versões/ambientes → **`ps-comparative-report`**
+- **i)** Análise de spike (pico anômalo curto) → **`ps-spike-report`**
+
+**Fallback:**
+
+- **j)** Nenhuma das anteriores → **PARE**. Abra issue no repo `elven-docs-skill`. Não improvise template.
 
 ### Passo 2 — Copiar o template
 
@@ -152,22 +170,50 @@ ASCII só como fallback quando Mermaid não cabe (tabela visual de layers, layou
 
 ```bash
 elven-docs-skill lint docs/instrumentacao-go.md
+# ou para PS reports:
+elven-docs-skill lint docs/ps/20260302-relatorio-incidente-beyond.md
 ```
 
 Esperado: `exit 0`. Resolver TODOS os warnings antes de prosseguir. Gate de PR é 10/10.
 
-### Passo 10 — Self-review humano
+### Passo 10 — (PS reports) Renderizar PDF
 
-Abrir `~/.claude/skills/elven-docs-skill/checklists/pre-publish.md` e bater item a item. Cobre o que o lint não pega: tom imperativo, completude do Quick Start, comandos rodam em macOS+Linux, ortografia.
+Para tipos `ps-*`, o ciclo de entrega só fecha com PDF. Use:
 
-### Passo 11 — Atualizar `last_reviewed` e abrir PR
+```bash
+elven-docs-skill pdf docs/ps/20260302-relatorio-incidente-beyond.md
+# Gera 20260302-relatorio-incidente-beyond.pdf no mesmo diretório.
+# Theme automático: 'client' (capa, header, footer, paginação A4).
+```
+
+Para forçar o tema:
+
+```bash
+elven-docs-skill pdf docs/instrumentacao-java.md --theme internal
+# Theme 'internal' para docs técnicos (sem capa, mais denso).
+```
+
+**Sempre abra o PDF e revise visualmente** antes de entregar — leitura do markdown não substitui Gate 5 do `quality-gate.md`.
+
+### Passo 11 — Self-review humano + quality gates
+
+Abra os 2 references:
+
+1. `~/.claude/skills/elven-docs-skill/checklists/pre-publish.md` — items granulares por dimensão.
+2. `~/.claude/skills/elven-docs-skill/reference/quality-gate.md` — 6 gates de aceite (verdade técnica, coerência narrativa, coerência de artefatos, lint, acessibilidade, pergunta final).
+
+Cubra o que o lint não pega: tom imperativo, completude do Quick Start, comandos rodam em macOS+Linux, ortografia, **PDF renderiza sem clipping**.
+
+### Passo 12 — Atualizar `last_reviewed` e abrir PR
 
 ```yaml
 last_reviewed: 2026-05-08    # data de hoje
-status: stable               # se já está pronto pra publicar; senão: draft
+status: stable               # se já está pronto pra entrega/publicar; senão: draft
 ```
 
-Commit semântico. PR menciona o `type`. Reviewer cola o output do lint na descrição.
+Commit semântico. PR menciona o `type`. Reviewer cola:
+- output do `lint` (esperado: exit 0)
+- screenshot da primeira página do PDF (para PS reports)
 
 ---
 
@@ -181,13 +227,20 @@ Commit semântico. PR menciona o `type`. Reviewer cola o output do lint na descr
 - "fazer um PDtec novo pra cliente Y"
 - "revisar/normalizar/lintar elven-observability/docs/\<arquivo\>"
 - "preparar PR de docs Elven"
+- "redigir relatório de incidente do cliente Z"
+- "fazer relatório de teste de carga pro Beyond"
+- "preparar comparativo entre cenários A e B"
+- "documentar spike de produção"
+- "gerar PDF dessa doc"
+- "renderizar PS report em PDF"
 
 ### NÃO use ESTE skill quando
 
-- O doc é fora de `elven-observability/docs/` (ex: README de outro repo).
-- O usuário pediu ADR, runbook, post-mortem, RFC, release notes, changelog.
+- O doc é fora de `elven-observability/docs/` ou `elven-observability/docs/ps/`.
+- Tipo de documento não cai em nenhum dos 9 templates canônicos. Tipos comuns que **NÃO** estão cobertos: postmortem do Elven Incident (feature do produto), runbook do Command Center (feature), status page (feature), ADR de eng Elven interno, release notes. Para esses, abra issue antes.
 - O usuário quer traduzir doc pt→en.
 - O usuário quer doc gerada (OpenAPI/Swagger UI, TypeDoc, Sphinx autodoc).
+- O usuário quer slides/presentation — use `presentation-mentoring-factory` em vez disso.
 
 Se ambíguo, pergunte ao usuário em vez de improvisar.
 
@@ -197,6 +250,7 @@ Se ambíguo, pergunte ao usuário em vez de improvisar.
 
 - **`cliente-eng`** — Engenheiro/SRE no cliente fazendo a integração.
 - **`cliente-sre`** — SRE do cliente fazendo deploy/operação de componente hospedado.
+- **`cliente-stakeholder`** — Executivo/decisor não-técnico do cliente (CTO/COO); lê Sumário Executivo de PS reports.
 - **`agente-ia`** — Sentinel, Claude, ou outro agente AI consumindo doc como contexto estruturado.
 - **`eng-elven`** — Engenheiro Elven escrevendo/revisando doc.
 - **`onboarding-eng-elven`** — Pessoa nova no time Elven (primeiros 30 dias).
@@ -207,23 +261,29 @@ Matriz template × audience: `checklists/persona-coverage.md`.
 
 ## Recursos do skill
 
-- **Templates**: `templates/{language,platform,stack-installation,frontend-sdk,pdtec}.md`
+- **Templates** (9): `templates/{language,platform,stack-installation,frontend-sdk,pdtec}-*.md` + `templates/ps-{incident,load-test,comparative,spike}-report.md`
 - **Style guide com fontes 2026**: `reference/style-guide.md`
 - **Frontmatter spec**: `reference/frontmatter-spec.md`
 - **Vocabulário de seções**: `reference/canonical-section-headings.md`
 - **Vocabulário de callouts**: `reference/callout-vocabulary.md`
 - **Mapa de tags de fence**: `reference/code-fence-language-map.md`
-- **Glossário Elven**: `reference/glossary.md`
+- **Glossário Elven** (4 produtos): `reference/glossary.md`
+- **Quality gate** (6 gates): `reference/quality-gate.md`
+- **Artifact contract** (o que cada template promete): `reference/artifact-contract.md`
 - **Checklists**: `checklists/pre-publish.md`, `checklists/persona-coverage.md`, `checklists/accessibility.md`
-- **Lint binário**: `scripts/lint.sh`
-- **Backfill retroativo**: `scripts/backfill-frontmatter.sh` (só Fase 7)
+- **Lint binário** (10 itens): `scripts/lint.sh`
+- **Backfill retroativo**: `scripts/backfill-frontmatter.sh`
+- **PDF renderer**: `scripts/render-pdf.js` (acessível via `elven-docs-skill pdf <arquivo.md>`)
+- **Temas CSS**: `themes/client.css` (PS reports — capa + header/footer) e `themes/internal.css` (docs técnicos)
 
 ---
 
 ## O que esse skill DELIBERADAMENTE não faz
 
-- **Não inventa templates pra tipos ausentes.** Se você precisa de ADR/runbook/post-mortem, pare e abra issue.
+- **Não inventa templates pra tipos ausentes.** Se você precisa de tipo novo (postmortem feature do Elven Incident, runbook do Command Center, ADR interno, release notes), pare e abra issue.
 - **Não migra docs legados automaticamente.** Migração retroativa é PR humano-supervisionado, não execução de skill.
 - **Não traduz pt→en.** Repo é pt-BR-only nesta versão.
 - **Não documenta API gerada.** OpenAPI/Swagger UI são outras ferramentas.
-- **Não lintha prosa.** Lint v1 é estrutural; prosa é review humano por enquanto. Adicionar Vale/markdownlint é roadmap pós-v0.1.0.
+- **Não lintha prosa.** Lint estrutural cobre 10 itens binários; prosa é review humano. Adicionar Vale/markdownlint é roadmap.
+- **Não cobre features de produtos Monitoring/Incident/Command Center** (taxonomia em `docs.elven.works`). Cobertura desses produtos depende de instâncias reais ≥3 no repo Elven. Hoje só Observability+PS reports atingem o critério.
+- **PDF não embute fontes web customizadas.** Tema usa system stack (Helvetica/Inter fallback). Fonte Elven custom é roadmap v0.3+.

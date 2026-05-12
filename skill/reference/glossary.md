@@ -1,8 +1,63 @@
 # Glossário Elven
 
-Termos técnicos da Elven Works que aparecem nos docs do repo `elven-observability/docs`. Glossário **autoritativo**: ao escrever doc novo, use estas grafias e acepções; não invente sinônimos.
+Termos técnicos da Elven Works que aparecem (a) no repo `elven-observability/docs` e (b) no site público `docs.elven.works`. Glossário **autoritativo**: ao escrever doc novo, use estas grafias e acepções; não invente sinônimos.
 
-> Glossário v1 cobre apenas o que aparece literalmente no repo. Termos de produtos internos não-públicos (Sentinel, Kyrvex, Wevy, etc., se existirem) ficam fora até serem documentados publicamente.
+> Glossário v2 (skill v0.2.0) cobre o ecossistema completo Elven Works conforme [docs.elven.works](https://docs.elven.works/). Pontos com lacuna (Sentinel, Kyrvex, etc.) permanecem em [Termos sob avaliação](#termos-sob-avaliacao).
+
+---
+
+## Produtos top-level Elven Works
+
+A plataforma Elven Works tem **4 produtos** documentados publicamente:
+
+| Produto | Função | Doc oficial |
+|---------|--------|-------------|
+| **Elven Monitoring** | Monitoramento de infraestrutura, aplicações, serviços (web/API, SSL, sintético, browser check, infra) | [docs.elven.works/elven-platform/elven-monitoring](https://docs.elven.works/elven-platform/elven-monitoring.md) |
+| **Elven Observability** | Coleta e análise de traces, métricas, logs via OTel + stack LGTM | [docs.elven.works/elven-platform/elven-observability](https://docs.elven.works/elven-platform/elven-observability.md) |
+| **Elven Incident** | Gestão centralizada de incidentes, alertas, status pages, postmortem, on-call | [docs.elven.works/elven-platform/elven-incident](https://docs.elven.works/elven-platform/elven-incident.md) |
+| **Command Center** | Centro de controle com acionamentos, runbooks, relatórios | [docs.elven.works/elven-platform/command-center](https://docs.elven.works/elven-platform/command-center.md) |
+
+Quando o doc trata de mais de um produto, mencione todos por nome próprio (ex: "Elven Observability + Elven Incident").
+
+---
+
+## Módulos Elven Monitoring
+
+| Módulo | Função |
+|--------|--------|
+| Web/API | Monitoramento HTTP/HTTPS de endpoints específicos (GET, POST) |
+| Domínios/SSL | Validade de certificado e expiração de domínio |
+| Sintético | Testes sintéticos de disponibilidade (uptime check) |
+| Browser Check | Experiência real-user via browser headless |
+| Infraestrutura | Servidores e recursos (CPU, memória, disco) |
+
+---
+
+## Módulos Elven Incident
+
+| Módulo | Função |
+|--------|--------|
+| Alertas | Configuração e gestão de regras de alerta |
+| Incidentes | Rastreamento de incidentes (linha do tempo, severidade, status) |
+| Status Pages | Páginas de status público para comunicação ao usuário final |
+| Postmortem | Análise post-incidente colaborativa (Summary / Root Cause / Recovery / Corrective Actions) |
+| Escala de Plantão (on-call) | Gestão de rotação on-call |
+| Integrações de canais | Slack, Teams, Discord, Google Chat, E-mail, SMS, WhatsApp, ligações |
+
+---
+
+## Módulos Command Center
+
+| Módulo | Função |
+|--------|--------|
+| Runbooks | Procedimentos automatizados acionáveis |
+| Relatórios | Geração de relatórios operacionais |
+
+---
+
+> Acima é a **taxonomia oficial**. Quando uma feature não cabe em nenhum módulo listado, escale antes de inventar nome novo.
+
+---
 
 ---
 
@@ -197,13 +252,32 @@ Aparece em alguns docs antigos. **Em docs novos, prefira Estilo A ou B.** Use C 
 
 ---
 
-## Termos sob avaliação (não usar até decisão)
+## Termos sob avaliação (não usar até decisão) {#termos-sob-avaliacao}
 
-Termos que apareceram em discussões internas mas **NÃO** estão documentados publicamente. Não use em docs até que sejam adicionados a este glossário com fonte:
+Termos que apareceram em discussões internas mas **NÃO** estão documentados publicamente em [docs.elven.works](https://docs.elven.works/). Não use em docs até que sejam adicionados a este glossário com fonte:
 
-- "Sentinel" / "Sentinel v2"
+- "Sentinel" / "Sentinel v2" — agente de correlação automática (apareceu em apresentação interna; sem doc público)
 - "Kyrvex"
 - "Wevy"
 - "Elven Connect"
+- "Beyond v2" — referência interna a uma evolução da plataforma; usar apenas em docs de cliente específico que já tem o termo (ex: cliente "Beyond")
 
 Se você precisa documentar algum desses, abra issue antes para discutir grafia, escopo, e quem é o owner.
+
+---
+
+## Terminologia de PS reports
+
+Termos próprios dos relatórios de Professional Services entregues ao cliente:
+
+- **PS** — Professional Services. Categoria interna Elven que cobre relatórios, assessoria, roadmap.
+- **MTTD** — Mean Time To Detect. Tempo entre início real do incidente e disparo do alerta.
+- **MTTR** — Mean Time To Recovery. Tempo entre alerta e retorno do serviço ao baseline.
+- **SEV1 / SEV2 / SEV3** — Severidade declarada de incidente. SEV1 = crítico (afeta produção, exige resposta imediata).
+- **Spike** — Pico anômalo curto que pode ou não virar incidente.
+- **Endurance test** — Teste de carga sustentado por período longo (1h+) que revela memory leaks e degradação gradual.
+- **Traffic shadowing** — Espelhamento de tráfego real para ambiente alternativo sem afetar resposta ao usuário.
+- **Canário (canary)** — Rollout gradual que envia uma fração pequena de tráfego pra versão nova.
+- **5 porquês (5 whys)** — Técnica de análise de causa raiz que pergunta "por quê?" sucessivamente.
+- **SLO** — Service Level Objective. Meta interna mensurável (ex: p95 <1s).
+- **SLA** — Service Level Agreement. Compromisso contratual com o cliente.

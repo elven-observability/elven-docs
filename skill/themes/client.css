@@ -1,0 +1,292 @@
+/*
+ * Elven Works — Client-facing report theme (CSS for Puppeteer PDF render)
+ *
+ * Aplicado em: PS reports (incident, load-test, comparative, spike) que vão
+ * para o cliente. Visual conservador, tipografia clara, paginação preparada,
+ * espaço para header/footer institucionais.
+ *
+ * Modo de uso: o render-pdf.js injeta este CSS no <head> do HTML temporário
+ * antes de chamar puppeteer.pdf().
+ */
+
+/* === Base === */
+
+@page {
+  size: A4;
+  margin: 25mm 18mm 22mm 18mm;
+}
+
+@page :first {
+  margin-top: 35mm;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 11pt;
+  color: #1a1f2e;
+  background: #ffffff;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
+    Helvetica, Arial, "Inter", "Liberation Sans", sans-serif;
+  line-height: 1.55;
+  margin: 0;
+  padding: 0;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* === Headings === */
+
+h1 {
+  font-size: 22pt;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 6mm 0;
+  color: #0d1530;
+  letter-spacing: -0.01em;
+  border-bottom: 2.5pt solid #0d1530;
+  padding-bottom: 4mm;
+  page-break-after: avoid;
+}
+
+h2 {
+  font-size: 14.5pt;
+  font-weight: 700;
+  margin: 11mm 0 3mm 0;
+  color: #0d1530;
+  page-break-after: avoid;
+  border-left: 3pt solid #c95b29;
+  padding-left: 4mm;
+}
+
+h3 {
+  font-size: 12pt;
+  font-weight: 600;
+  margin: 7mm 0 2.5mm 0;
+  color: #1a1f2e;
+  page-break-after: avoid;
+}
+
+h4 {
+  font-size: 11pt;
+  font-weight: 600;
+  margin: 5mm 0 2mm 0;
+  color: #34405c;
+  page-break-after: avoid;
+}
+
+/* === Body text === */
+
+p {
+  margin: 0 0 3mm 0;
+  text-align: left;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+
+strong {
+  font-weight: 600;
+  color: #0d1530;
+}
+
+em {
+  font-style: italic;
+  color: #34405c;
+}
+
+/* === Links === */
+
+a {
+  color: #0c63b0;
+  text-decoration: none;
+  border-bottom: 0.5pt solid #0c63b0;
+}
+
+/* === Lists === */
+
+ul,
+ol {
+  margin: 0 0 4mm 0;
+  padding-left: 6mm;
+}
+
+li {
+  margin-bottom: 1.5mm;
+}
+
+li > ul,
+li > ol {
+  margin-top: 1.5mm;
+  margin-bottom: 0;
+}
+
+/* === Code === */
+
+code {
+  font-family: "SF Mono", "Menlo", "Monaco", "Consolas", "Liberation Mono",
+    monospace;
+  font-size: 0.88em;
+  background: #f3f5f8;
+  padding: 0.5pt 2pt;
+  border-radius: 2pt;
+  color: #1a1f2e;
+}
+
+pre {
+  background: #0d1530;
+  color: #e9eef7;
+  padding: 4mm 5mm;
+  border-radius: 2pt;
+  font-size: 9pt;
+  line-height: 1.45;
+  overflow-x: auto;
+  margin: 3mm 0 4mm 0;
+  page-break-inside: avoid;
+}
+
+pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
+}
+
+/* === Blockquotes (callouts) === */
+
+blockquote {
+  border-left: 3pt solid #c95b29;
+  background: #fdf5ef;
+  padding: 3mm 4mm 3mm 5mm;
+  margin: 4mm 0 4mm 0;
+  page-break-inside: avoid;
+}
+
+blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* Cores semânticas por prefixo (heurística — JS pode adicionar classes) */
+blockquote.callout-atencao,
+blockquote.callout-cuidado {
+  border-left-color: #c44545;
+  background: #fdf2f2;
+}
+
+blockquote.callout-importante {
+  border-left-color: #b58300;
+  background: #fcf9ef;
+}
+
+blockquote.callout-nota,
+blockquote.callout-aviso {
+  border-left-color: #0c63b0;
+  background: #f0f6fc;
+}
+
+blockquote.callout-dica {
+  border-left-color: #2f8a3a;
+  background: #f0f8f1;
+}
+
+/* === Tables === */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 3mm 0 5mm 0;
+  font-size: 9.5pt;
+  page-break-inside: auto;
+}
+
+thead {
+  display: table-header-group;
+}
+
+tr {
+  page-break-inside: avoid;
+}
+
+th,
+td {
+  border: 0.5pt solid #d6dbe4;
+  padding: 2mm 3mm;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #0d1530;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 9.5pt;
+}
+
+tr:nth-child(even) td {
+  background: #f8f9fb;
+}
+
+/* === Horizontal rule === */
+
+hr {
+  border: none;
+  border-top: 0.5pt solid #d6dbe4;
+  margin: 6mm 0;
+}
+
+/* === Images === */
+
+img {
+  max-width: 100%;
+  height: auto;
+  page-break-inside: avoid;
+  margin: 3mm 0;
+}
+
+/* === Page break utilities === */
+
+.page-break {
+  page-break-after: always;
+}
+
+.no-break {
+  page-break-inside: avoid;
+}
+
+/* === Cover header injected by render-pdf.js (optional) === */
+
+.elven-cover {
+  page-break-after: always;
+  padding: 35mm 18mm 18mm 18mm;
+}
+
+.elven-cover .brand {
+  color: #c95b29;
+  font-size: 10pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 5mm;
+}
+
+.elven-cover .title {
+  font-size: 26pt;
+  font-weight: 700;
+  color: #0d1530;
+  line-height: 1.2;
+  margin-bottom: 8mm;
+}
+
+.elven-cover .meta {
+  font-size: 10pt;
+  color: #34405c;
+  line-height: 1.7;
+}
+
+.elven-cover .meta strong {
+  color: #0d1530;
+}

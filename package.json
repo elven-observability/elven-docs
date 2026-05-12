@@ -1,7 +1,7 @@
 {
   "name": "@elven-observability/docs-skill",
-  "version": "0.1.0",
-  "description": "Anthropic skill-creator pack codifying Elven Works observability documentation standards (templates, vocabulary, lint).",
+  "version": "0.2.0",
+  "description": "Anthropic skill-creator pack codifying Elven Works documentation standards: 9 canonical templates (instrumentation guides, stack installation, frontend SDK, PDtec specs, and PS client reports), frontmatter+lint binary gate, and PDF rendering with Elven branding.",
   "license": "MIT",
   "author": "Elven Works <docs@elven.works>",
   "homepage": "https://github.com/elven-observability/elven-docs#readme",
@@ -23,9 +23,15 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "bash tests/lint.test.sh",
+    "test": "bash tests/lint.test.sh && bash tests/render-pdf.test.sh",
+    "test:lint": "bash tests/lint.test.sh",
+    "test:pdf": "bash tests/render-pdf.test.sh",
     "lint:fixtures": "bash skill/scripts/lint.sh tests/fixtures/pass-*.md",
     "prepack": "chmod +x bin/elven-docs-skill.js skill/scripts/lint.sh skill/scripts/backfill-frontmatter.sh"
+  },
+  "dependencies": {
+    "marked": "^14.1.0",
+    "puppeteer": "^23.5.0"
   },
   "engines": {
     "node": ">=18"
@@ -45,6 +51,8 @@
     "lgtm",
     "pt-br",
     "lint",
-    "markdown"
+    "markdown",
+    "pdf",
+    "ps-reports"
   ]
 }

@@ -44,6 +44,14 @@ derive_type() {
       echo "stack-installation-guide" ;;
     faro-sdk-*|*-frontend|*-rum-sdk)
       echo "frontend-sdk-guide" ;;
+    *-relatorio-incidente-*|*relatorio-incidente*)
+      echo "ps-incident-report" ;;
+    *-relatorio-teste-carga-*|*relatorio-teste-carga*|*-relatorio-carga-*)
+      echo "ps-load-test-report" ;;
+    *-relatorio-comparativo-*|*relatorio-comparativo*)
+      echo "ps-comparative-report" ;;
+    *-relatorio-spike-*|*relatorio-spike*)
+      echo "ps-spike-report" ;;
     *)
       echo "" ;;
   esac
@@ -57,6 +65,8 @@ derive_audience() {
     stack-installation-guide) echo "[cliente-sre, agente-ia, onboarding-eng-elven]" ;;
     frontend-sdk-guide) echo "[cliente-eng, agente-ia]" ;;
     pdtec-spec) echo "[cliente-eng, agente-ia]" ;;
+    ps-incident-report|ps-load-test-report|ps-comparative-report|ps-spike-report)
+      echo "[cliente-stakeholder, cliente-eng, cliente-sre, eng-elven]" ;;
     *) echo "[cliente-eng, agente-ia]" ;;
   esac
 }

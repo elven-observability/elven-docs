@@ -204,6 +204,30 @@ A literatura recente confirma que estrutura estável melhora retrieval:
 
 ---
 
+## Sobre docs.elven.works (taxonomia, não ossatura)
+
+[docs.elven.works](https://docs.elven.works/) (acessado maio/2026) é a documentação **pública** da plataforma Elven Works e cobre 4 produtos top-level:
+
+- **Elven Monitoring** — web/API, domínios/SSL, sintético, browser check, infraestrutura
+- **Elven Observability** — instrumentação e integração (cobertura principal do skill atual)
+- **Elven Incident** — alertas, incidentes, status pages, postmortem, escala de plantão
+- **Command Center** — runbooks, relatórios
+
+**Aviso editorial.** As páginas em `docs.elven.works` são **minimalistas** por design — a maioria delega resposta a agente IA via parâmetro `?ask=`. Isso significa que docs.elven.works **NÃO** serve como referência de ossatura para templates do skill. Serve como:
+
+1. **Taxonomia oficial** dos produtos Elven (nomes, módulos, hierarquia).
+2. **Fonte de glossário** (ver `glossary.md`).
+3. **Inventário de tipos de feature** que existem na plataforma.
+
+Os templates do skill são baseados em:
+
+- **5 templates de instrumentação/instalação/spec** → ancorados no repo `elven-observability/docs` (12 instâncias reais).
+- **4 templates PS report** → ancorados na pasta `elven-observability/docs/ps/` (7 PDFs reais entregues a cliente em 2026-Q1).
+
+> **Implicação.** Adicionar template novo no skill exige instância real no repo ou no fluxo PS, **não** ocorrência só no docs.elven.works. Aquele site catalogou a plataforma; este skill catalogou a entrega.
+
+---
+
 ## Gaps assumidos
 
 Pesquisa Fase 2 revelou áreas onde a fundamentação 2026 ainda é fraca. Ficam registrados como gaps a fechar em v0.2+:

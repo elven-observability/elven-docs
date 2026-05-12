@@ -112,6 +112,72 @@ Estrutura curta. TOC opcional. Headings flexíveis em torno do tópico, mas esco
 - `## Checklist de deploy` (lista `- [ ]`) — opcional
 - `## Troubleshooting` (sintoma → causa → fix) — recomendado
 
+### `ps-incident-report`
+
+Ordem canônica (rígida):
+
+1. `## Sumário`
+2. `## Sumário executivo` (3-5 parágrafos para stakeholder)
+3. `## Linha do tempo` (tabela cronológica em BRT)
+4. `## Impacto` (usuário final, negócio, sistemas)
+5. `## Detecção` (MTTD)
+6. `## Mitigação e recuperação` (MTTR)
+7. `## Causa raiz`
+8. `## Análise dos 5 porquês` (opcional mas recomendado)
+9. `## Lições aprendidas`
+10. `## Plano de ação` (tabela: # / ação / responsável / prazo / status)
+11. `## Glossário`
+
+### `ps-load-test-report`
+
+Ordem canônica (rígida):
+
+1. `## Sumário`
+2. `## Sumário executivo`
+3. `## Objetivo do teste`
+4. `## Escopo` (em escopo / fora de escopo)
+5. `## Metodologia` (ferramenta, modelo de carga, payload)
+6. `## Ambiente alvo`
+7. `## Cenários executados`
+8. `## Resultados` (latência, throughput, error rate, saturação)
+9. `## Análise de bottlenecks`
+10. `## Comparação com SLOs`
+11. `## Recomendações`
+12. `## Anexos`
+13. `## Glossário`
+
+### `ps-comparative-report`
+
+Ordem canônica (rígida):
+
+1. `## Sumário`
+2. `## Sumário executivo`
+3. `## Pergunta sob comparação`
+4. `## Cenários A e B`
+5. `## Metodologia`
+6. `## Métricas lado a lado`
+7. `## Análise do delta`
+8. `## Trade-offs identificados`
+9. `## Recomendação` (com plano de migração se decisão for adotar uma das opções)
+10. `## Anexos`
+11. `## Glossário`
+
+### `ps-spike-report`
+
+Ordem canônica (rígida):
+
+1. `## Sumário`
+2. `## Sumário executivo`
+3. `## Janela observada`
+4. `## Métricas afetadas`
+5. `## Linha do tempo curta`
+6. `## Hipóteses levantadas` (tabela: hipótese / status)
+7. `## Análise das hipóteses`
+8. `## Conclusão`
+9. `## Recomendações`
+10. `## Anexos`
+11. `## Glossário`
+
 ---
 
 ## Regra de "Não se aplica"

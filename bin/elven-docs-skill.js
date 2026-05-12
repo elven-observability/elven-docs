@@ -3,12 +3,14 @@
  * elven-docs-skill — CLI
  *
  * Subcomandos:
- *   install [--force]    Copia skill/* para ~/.claude/skills/elven-docs-skill/
- *   update               Idem install, com prompt antes de sobrescrever
- *   lint <arquivo>       Roda skill/scripts/lint.sh contra um arquivo
- *   backfill <arquivo..> Roda skill/scripts/backfill-frontmatter.sh
- *   --version, -v        Imprime versão do package
- *   --help, -h           Imprime esta ajuda
+ *   install [--force]            Copia skill/* para ~/.claude/skills/elven-docs-skill/
+ *   update                       Idem install, com prompt antes de sobrescrever
+ *   lint <arquivo>               Roda skill/scripts/lint.sh contra um arquivo
+ *   backfill <arquivo..>         Roda skill/scripts/backfill-frontmatter.sh
+ *   pdf <arquivo.md> [opts]      Renderiza markdown → PDF temado via Puppeteer
+ *                                opts: --out <file.pdf>, --theme <client|internal>
+ *   --version, -v                Imprime versão do package
+ *   --help, -h                   Imprime esta ajuda
  */
 
 "use strict";
@@ -51,6 +53,11 @@ Uso:
   elven-docs-skill backfill <arquivo.md> [<arquivo.md>...]
       Roda skill/scripts/backfill-frontmatter.sh — adiciona frontmatter
       derivado a docs legados. Edita os arquivos in-place.
+
+  elven-docs-skill pdf <arquivo.md> [--out <out.pdf>] [--theme <client|internal>]
+      Renderiza markdown → HTML temado Elven → PDF via Puppeteer.
+      Theme default é 'client' quando type=ps-*, senão 'internal'.
+      Saída default é <arquivo>.pdf ao lado do .md.
 
   elven-docs-skill --version, -v
       Imprime ${PACKAGE_JSON.version}.
@@ -153,6 +160,20 @@ function backfill(files) {
   process.exit(result.status ?? 1);
 }
 
+function pdf(args) {
+  if (args.length === 0) {
+    err("Uso: elven-docs-skill pdf <arquivo.md> [--out <out.pdf>] [--theme <client|internal>]");
+    process.exit(2);
+  }
+  const script = path.join(PACKAGE_ROOT, "skill", "scripts", "render-pdf.js");
+  if (!fs.existsSync(script)) {
+    err(`Erro: ${script} não encontrado. Reinstale o package.`);
+    process.exit(1);
+  }
+  const result = spawnSync(process.execPath, [script, ...args], { stdio: "inherit" });
+  process.exit(result.status ?? 1);
+}
+
 function main() {
   switch (cmd) {
     case undefined:
@@ -184,6 +205,10 @@ function main() {
 
     case "backfill":
       backfill(args.slice(1));
+      break;
+
+    case "pdf":
+      pdf(args.slice(1));
       break;
 
     default:

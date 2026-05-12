@@ -1,8 +1,8 @@
 # `@elven-observability/docs-skill`
 
-Anthropic skill-creator pack que codifica o **padrão de documentação técnica da Elven Works**. Distribuído via npm para instalação one-shot na máquina de qualquer engenheiro Elven ou agente IA.
+Anthropic skill-creator pack que codifica o **padrão de documentação técnica e PS reports da Elven Works**. Distribuído via npm com instalação one-shot. Renderiza markdown → PDF temado Elven via Puppeteer.
 
-> **Status:** v0.1.0 (pré-estável). Skill cobre o repo `elven-observability/docs` (12 guias de instrumentação). Tipos não presentes no repo (ADR, runbook, post-mortem) são out of scope.
+> **Status:** v0.2.0. Cobre 9 templates canônicos: 5 docs técnicos (instrumentação, instalação, SDK frontend, PDtec) + 4 PS reports (incidente, teste de carga, comparativo, spike). Geração de PDF integrada.
 
 ---
 
@@ -104,6 +104,24 @@ elven-docs-skill lint docs/instrumentacao-java.md
 
 Saída: `0` (passa) ou `1` (falha) com mensagem por item violado.
 
+### Gerar PDF de um doc
+
+```bash
+# Theme automático: 'client' se type=ps-*, senão 'internal'
+elven-docs-skill pdf docs/ps/20260302-relatorio-incidente-beyond.md
+# → 20260302-relatorio-incidente-beyond.pdf (no mesmo dir)
+
+# Forçar tema
+elven-docs-skill pdf docs/instrumentacao-java.md --theme internal --out /tmp/java.pdf
+
+# Theme 'client' inclui:
+# - capa com título, cliente, data, severidade, owner
+# - header com título do doc
+# - footer com cliente + numeração de páginas
+# - margens A4 generosas
+# - cores Elven (texto #0d1530 sobre branco; accent #c95b29)
+```
+
 ---
 
 ## Estrutura
@@ -125,13 +143,24 @@ Saída: `0` (passa) ou `1` (falha) com mensagem por item violado.
 
 ## Templates disponíveis
 
+### Docs técnicos (vão em `elven-observability/docs/`)
+
 | Template | Quando usar | Persona alvo |
 |----------|-------------|--------------|
-| `language-instrumentation-guide` | Doc de instrumentação para UMA linguagem (Java, Python, .NET, Node, Go, etc.) | cliente-eng, agente-ia |
-| `platform-instrumentation-guide` | Doc de instrumentação via plataforma/orquestrador (K8s Operator, Lambda, Serverless, ECS) | cliente-eng, agente-ia, onboarding-eng-elven |
-| `stack-installation-guide` | Cliente vai hospedar/operar componente Elven na própria infra | cliente-sre, agente-ia, onboarding-eng-elven |
-| `frontend-sdk-guide` | SDK web/cliente cuja doc cresce em matriz framework × caso (Faro, futuro RN) | cliente-eng (frontend), agente-ia |
-| `pdtec-spec` | Spec curta (<300 linhas) específica do cliente PDtec, foco copy-paste | cliente-eng (PDtec), agente-ia |
+| `language-instrumentation-guide` | Instrumentação para UMA linguagem (Java, Python, .NET, Node, Go, etc.) | cliente-eng, agente-ia |
+| `platform-instrumentation-guide` | Instrumentação via plataforma/orquestrador (K8s Operator, Lambda, Serverless, ECS) | cliente-eng, agente-ia, onboarding-eng-elven |
+| `stack-installation-guide` | Cliente hospeda/opera componente Elven na própria infra | cliente-sre, agente-ia, onboarding-eng-elven |
+| `frontend-sdk-guide` | SDK web/cliente em matriz framework × caso (Faro, futuro RN) | cliente-eng (frontend), agente-ia |
+| `pdtec-spec` | Spec curta (<300 linhas) específica do cliente PDtec | cliente-eng (PDtec), agente-ia |
+
+### PS reports (vão em `elven-observability/docs/ps/`, geram PDF temado client)
+
+| Template | Quando usar | Persona alvo |
+|----------|-------------|--------------|
+| `ps-incident-report` | Relatório formal de incidente entregue ao cliente (linha do tempo, MTTD/MTTR, causa raiz, plano de ação) | cliente-stakeholder, cliente-eng, cliente-sre |
+| `ps-load-test-report` | Relatório de teste de carga (metodologia, p95/p99, throughput, bottlenecks, recomendações) | cliente-stakeholder, cliente-eng, cliente-sre |
+| `ps-comparative-report` | Comparativo entre dois cenários (critério de decisão, métricas lado a lado, recomendação) | cliente-stakeholder, cliente-eng, cliente-sre |
+| `ps-spike-report` | Análise de spike anômalo curto (hipóteses, evidência, conclusão) | cliente-stakeholder, cliente-eng, cliente-sre |
 
 ---
 
@@ -179,12 +208,13 @@ PRs são bem-vindos para:
 - Refinar mensagens de erro do `lint.sh`.
 - Atualizar `reference/style-guide.md` com fontes mais recentes.
 - Reportar drift detectado em PRs reais que o lint não pegou.
+- Melhorar `themes/client.css` e `themes/internal.css` (cores, tipografia, layout PDF).
 
 PRs **NÃO** são bem-vindos para:
 
-- Adicionar templates de tipos sem ≥3 instâncias no repo `elven-observability/docs`. Abra issue antes.
+- Adicionar templates de tipos sem ≥3 instâncias reais no repo `elven-observability/docs` ou `docs/ps/`. Abra issue antes.
 - Suavizar regras E1-E8 sem evidência nova ou demanda de cliente.
-- Adicionar dependências runtime em Node (CLI deve ficar dependency-free).
+- Adicionar dependências runtime pesadas além de `puppeteer` e `marked`.
 
 Workflow:
 

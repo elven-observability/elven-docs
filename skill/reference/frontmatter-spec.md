@@ -50,7 +50,9 @@ Regras:
 
 ### `type` — enum, obrigatório
 
-Um dos 5 valores válidos:
+Um dos 9 valores válidos:
+
+**Templates de doc técnico interno/cliente:**
 
 | Valor | Quando usar |
 |-------|-------------|
@@ -60,7 +62,16 @@ Um dos 5 valores válidos:
 | `frontend-sdk-guide` | SDK web/cliente cuja doc cresce em matriz framework × caso (Faro Web SDK, futuro Faro RN) |
 | `pdtec-spec` | Spec curta (<300 linhas) específica de cliente PDtec |
 
-Lint rejeita qualquer valor fora desse enum.
+**Templates de relatório PS (Professional Services, entregue ao cliente):**
+
+| Valor | Quando usar |
+|-------|-------------|
+| `ps-incident-report` | Relatório formal de incidente: linha do tempo, impacto, causa raiz, mitigação, plano de ação |
+| `ps-load-test-report` | Relatório de teste de carga: metodologia, resultados, bottlenecks, recomendações |
+| `ps-comparative-report` | Comparativo entre dois cenários/versões/ambientes com decisão recomendada |
+| `ps-spike-report` | Análise de spike (pico anômalo curto) que pode ou não ter virado incidente |
+
+Lint rejeita qualquer valor fora desse enum. PS reports recebem renderização PDF temada **client** (com capa, header, footer, paginação) via `elven-docs-skill pdf <arquivo.md>`.
 
 ### `audience` — array de enum, obrigatório (≥1 item)
 
@@ -226,6 +237,89 @@ owner: docs@elven.works
 ---
 ```
 
+### `ps-incident-report`
+
+```yaml
+---
+title: Relatório de Incidente — Beyond — 2026-03-02
+slug: 20260302-relatorio-incidente-beyond
+type: ps-incident-report
+audience: [cliente-stakeholder, cliente-eng, cliente-sre, eng-elven]
+incident_id: "INC-2026-0023"
+incident_date: "2026-03-02"
+client: "Beyond"
+severity: "SEV1"
+last_reviewed: 2026-03-09
+status: stable
+owner: ps@elven.works
+---
+```
+
+Campos adicionais opcionais para PS reports:
+
+- `incident_id` (ps-incident-report) — ID de rastreamento.
+- `incident_date` / `test_date` / `spike_date` / `report_date` — data do evento.
+- `client` — nome do cliente; usado na capa do PDF.
+- `severity` (ps-incident-report) — `SEV1` | `SEV2` | `SEV3`.
+- `severity_estimated` (ps-spike-report) — `informativo` | `alerta` | `incidente`.
+- `scenario` (ps-load-test-report) — nome do cenário.
+- `target_environment` (ps-load-test-report) — `staging` | `hml` | `production-mirror`.
+- `baseline_label` / `comparison_label` (ps-comparative-report) — descrições curtas dos cenários.
+
+### `ps-load-test-report`
+
+```yaml
+---
+title: Relatório de Teste de Carga — Beyond — 2026-Q1
+slug: 20260306-relatorio-teste-carga-beyond
+type: ps-load-test-report
+audience: [cliente-stakeholder, cliente-eng, cliente-sre, eng-elven]
+test_date: "2026-03-06"
+client: "Beyond"
+scenario: "checkout-bf-2026"
+target_environment: "production-mirror"
+last_reviewed: 2026-03-08
+status: stable
+owner: ps@elven.works
+---
+```
+
+### `ps-comparative-report`
+
+```yaml
+---
+title: Relatório Comparativo — Beyond — Beyond2 vs HML
+slug: 20260310-relatorio-comparativo-beyond2-vs-hml
+type: ps-comparative-report
+audience: [cliente-stakeholder, cliente-eng, cliente-sre, eng-elven]
+report_date: "2026-03-10"
+client: "Beyond"
+baseline_label: "HML atual (Stack v1.4.0)"
+comparison_label: "Beyond v2 (Stack v2.0.0-rc.3)"
+last_reviewed: 2026-03-10
+status: stable
+owner: ps@elven.works
+---
+```
+
+### `ps-spike-report`
+
+```yaml
+---
+title: Relatório de Spike — Beyond — 2026-03-11 14:18 BRT
+slug: 20260311-relatorio-spike-beyond
+type: ps-spike-report
+audience: [cliente-stakeholder, cliente-eng, cliente-sre, eng-elven]
+spike_date: "2026-03-11"
+spike_window_brt: "14:18 – 14:23"
+client: "Beyond"
+severity_estimated: "alerta"
+last_reviewed: 2026-03-11
+status: stable
+owner: ps@elven.works
+---
+```
+
 ---
 
 ## Migração retroativa (Fase 7)
@@ -246,6 +340,10 @@ Script deriva:
   - `instrumentacao-{kubernetes-operator,lambda-manual,serverless-plugin}` → `platform-instrumentation-guide`
   - `instalacao-*` ou `collector-*` → `stack-installation-guide`
   - `faro-sdk-*` → `frontend-sdk-guide`
+  - `*-relatorio-incidente-*` → `ps-incident-report`
+  - `*-relatorio-teste-carga-*` → `ps-load-test-report`
+  - `*-relatorio-comparativo-*` → `ps-comparative-report`
+  - `*-relatorio-spike-*` → `ps-spike-report`
 - `audience` ← default do `type`.
 - `last_reviewed` ← `git log -1 --format=%ad --date=short -- <file>`.
 - `status` ← `stable`.

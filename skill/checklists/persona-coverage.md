@@ -4,12 +4,13 @@ Matriz template × persona. Cada doc DECLARA `audience` no frontmatter; o lint a
 
 ---
 
-## Personas (5)
+## Personas (6)
 
 | ID | Quem é | Onde lê | O que precisa do doc |
 |----|--------|---------|---------------------|
 | **`cliente-eng`** | Engenheiro/SRE no cliente integrando Elven com aplicação dele | Em IDE durante a integração; em browser durante deploy | Quick Start <10min, copy-paste, validação verificável, troubleshooting com sintoma→fix |
 | **`cliente-sre`** | SRE do cliente operando componente Elven hospedado | Em IDE/Helm chart durante setup; em runbook durante incidente | Pré-requisitos completos (DNS, IAM, recursos), Quick Start, validação, troubleshooting, atualização, remoção |
+| **`cliente-stakeholder`** | Executivo/decisor não-técnico do cliente (CTO, Head of Eng, COO) | Em PDF impresso ou tablet, frequentemente fora de fluxo de trabalho técnico | Sumário executivo claro e quantificado; impacto em métricas de negócio; recomendação com prazo; sem jargão; visual profissional |
 | **`agente-ia`** | Sentinel/Claude/outro agente AI consumindo doc como contexto | Indexação RAG, retrieval por query semântica | Frontmatter filtrável (`type`, `audience`, `status`), headings estáveis, fences tipados, sem ruído visual |
 | **`eng-elven`** | Engenheiro Elven escrevendo/revisando doc | Em IDE escrevendo PR | Template canônico, lint binário, exemplos vivos |
 | **`onboarding-eng-elven`** | Pessoa nova no time Elven nos primeiros 30 dias | Em browser/IDE estudando o stack | Mapa do território, "como funciona", convenções (PDtec, Collector FE), referência cruzada |
@@ -18,13 +19,17 @@ Matriz template × persona. Cada doc DECLARA `audience` no frontmatter; o lint a
 
 ## Matriz template × persona
 
-| Template | `cliente-eng` | `cliente-sre` | `agente-ia` | `eng-elven` | `onboarding-eng-elven` |
-|----------|---------------|---------------|-------------|-------------|------------------------|
-| `language-instrumentation-guide` | ✓ primário | — | ✓ secundário | ✓ autoria | — |
-| `platform-instrumentation-guide` | ✓ primário | ✓ quando overlap eng/SRE | ✓ secundário | ✓ autoria | ✓ contexto de plataforma |
-| `stack-installation-guide` | — | ✓ primário | ✓ secundário | ✓ autoria | ✓ contexto arquitetural |
-| `frontend-sdk-guide` | ✓ primário (frontend) | — | ✓ secundário | ✓ autoria | — |
-| `pdtec-spec` | ✓ primário (PDtec) | — | ✓ secundário | ✓ autoria | ✓ entender convenção PDtec |
+| Template | `cliente-eng` | `cliente-sre` | `cliente-stakeholder` | `agente-ia` | `eng-elven` | `onboarding-eng-elven` |
+|----------|---------------|---------------|-----------------------|-------------|-------------|------------------------|
+| `language-instrumentation-guide` | ✓ primário | — | — | ✓ secundário | ✓ autoria | — |
+| `platform-instrumentation-guide` | ✓ primário | ✓ quando overlap eng/SRE | — | ✓ secundário | ✓ autoria | ✓ contexto de plataforma |
+| `stack-installation-guide` | — | ✓ primário | — | ✓ secundário | ✓ autoria | ✓ contexto arquitetural |
+| `frontend-sdk-guide` | ✓ primário (frontend) | — | — | ✓ secundário | ✓ autoria | — |
+| `pdtec-spec` | ✓ primário (PDtec) | — | — | ✓ secundário | ✓ autoria | ✓ entender convenção PDtec |
+| `ps-incident-report` | ✓ secundário (lê detalhe técnico) | ✓ secundário | ✓ primário (Sumário Executivo) | ✓ secundário | ✓ autoria | — |
+| `ps-load-test-report` | ✓ secundário | ✓ secundário (recomendações) | ✓ primário | ✓ secundário | ✓ autoria | — |
+| `ps-comparative-report` | ✓ secundário | ✓ secundário | ✓ primário (decisão) | ✓ secundário | ✓ autoria | — |
+| `ps-spike-report` | ✓ primário (debug técnico) | ✓ primário | ✓ secundário (sumário) | ✓ secundário | ✓ autoria | — |
 
 Legenda:
 
