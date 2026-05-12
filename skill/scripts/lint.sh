@@ -178,12 +178,15 @@ lint_file() {
       print_pass
       ;;
     ps-incident-report|ps-load-test-report|ps-comparative-report|ps-spike-report)
-      # PS reports usam Sumário; verificar que existe "Sumário executivo"
-      # como parte da ossatura (não TOC), e que TOC '## Sumário' está presente.
+      # PS reports devem ter:
+      # 1. '## Sumário' (lista numerada estática das seções)
+      # 2. AO MENOS uma seção H2 com numeração decimal (ex: '## 1. Resumo Executivo')
+      # Os reais usam '1. Resumo Executivo' (não 'Sumário Executivo'). Headings com
+      # numeração decimal embarcada são o padrão observado nos 7 PDFs reais.
       if ! grep -qE '^## Sumário$' "$file"; then
-        print_fail "6" "PS report deve ter '## Sumário' (TOC)"
-      elif ! grep -qE '^## Sumário executivo$' "$file"; then
-        print_fail "6" "PS report deve ter '## Sumário executivo' (overview pra stakeholder)"
+        print_fail "6" "PS report deve ter '## Sumário' (lista numerada das seções)"
+      elif ! grep -qE '^## [0-9]+\. ' "$file"; then
+        print_fail "6" "PS report deve ter pelo menos um H2 com numeração decimal (ex: '## 1. Resumo Executivo')"
       else
         print_pass
       fi

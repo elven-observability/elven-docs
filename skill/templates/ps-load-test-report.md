@@ -2,250 +2,227 @@
 title: Relatório de Teste de Carga — <Cliente> — <Cenário>
 slug: <YYYYMMDD>-relatorio-teste-carga-<cliente>
 type: ps-load-test-report
-audience: [cliente-stakeholder, cliente-eng, cliente-sre, eng-elven]
+audience: [cliente-eng, cliente-sre, cliente-stakeholder, eng-elven]
 test_date: "2026-MM-DD"
 client: "<nome-do-cliente>"
 scenario: "<nome-curto-do-cenário>"
-target_environment: "<staging|hml|production-mirror>"
-last_reviewed: 2026-05-08
+target_environment: "<dev|hml|production-mirror>"
+report_version: "1.0"
+last_reviewed: 2026-05-12
 status: draft
 owner: ps@elven.works
 ---
 
-# Relatório de Teste de Carga — <Cliente> — <Cenário>
+# Relatório de Teste de Carga (\<Ferramenta, ex: K6\>) — <Cliente> — <Fluxo>
 
-Relatório formal de teste de carga executado pela Elven Works contra ambiente do cliente. Documenta objetivo, metodologia, resultados, bottlenecks identificados e recomendações.
-
-> **Importante:** Este documento é confidencial. Métricas e configurações citadas refletem o ambiente alvo na data do teste; podem ter mudado desde então.
+> Header de página: `<Cliente> | Elven Works — Relatório de Teste de Carga`.
+> Versionamento de relatório vai no título quando há iterações: `v2.0 — Inclui Teste 4 (pós-otimizações)`.
 
 ---
 
 ## Sumário
 
-- [Sumário executivo](#sumário-executivo)
-- [Objetivo do teste](#objetivo-do-teste)
-- [Escopo](#escopo)
-- [Metodologia](#metodologia)
-- [Ambiente alvo](#ambiente-alvo)
-- [Cenários executados](#cenários-executados)
-- [Resultados](#resultados)
-- [Análise de bottlenecks](#análise-de-bottlenecks)
-- [Comparação com SLOs](#comparação-com-slos)
-- [Recomendações](#recomendações)
-- [Anexos](#anexos)
-- [Glossário](#glossário)
+1. Resumo Executivo
+2. Escopo e Metodologia
+3. Infraestrutura de Teste
+4. Resultados dos Testes
+5. Gargalo Principal: \<componente identificado\>
+6. Gargalo Secundário: \<endpoint ou componente secundário\>
+7. Problemas de Infraestrutura \<ambiente\>
+8. Recomendações
+9. Próximos Passos
+10. Conclusão
 
 ---
 
-## Sumário executivo
+## 1. Resumo Executivo
 
-3-5 parágrafos curtos:
+1-3 parágrafos. Padrão:
 
-1. **O que foi testado** em 1 frase (ex: "Checkout end-to-end sob carga progressiva de 100 a 5000 RPS").
-2. **Resultado headline** (ex: "Sistema sustenta 3200 RPS com p95 <800ms; degrada acima de 3500 RPS").
-3. **Bottleneck principal identificado.**
-4. **Comparação com objetivo declarado** (atingiu / não atingiu / parcialmente).
-5. **Próximos passos críticos** com prazo.
-
----
-
-## Objetivo do teste
-
-Texto direto:
-
-- **Hipótese a validar.** Ex: "O checkout suporta a meta de Black Friday 2026 (3000 RPS, p95 <1s)".
-- **Métricas-alvo:**
-  - Throughput sustentado: ≥3000 RPS
-  - Latência p95: <1000 ms
-  - Error rate: <0.1%
-  - Saturação CPU/memória: <80%
-- **Pergunta de negócio.** Ex: "Vamos passar pela Black Friday sem indisponibilidade?"
+1. **O que foi feito** — frase direta (ex: "Foram realizados testes de carga no fluxo X utilizando K6, simulando até 850 VUs simultâneos.").
+2. **Objetivo** — em 1 linha.
+3. **Resultado headline** — quantificado, citando o gargalo principal identificado (ex: "Principal gargalo: pool de conexões SQL Server (~500). Acima de ~500 VUs, satura e causa timeouts em cascata").
+4. **Pista de contraste** — onde NÃO foi gargalo (ex: "Endpoints que não dependem do Multiclubes como `/cms/news` mantiveram 95%+ de sucesso, sugerindo backend específico").
 
 ---
 
-## Escopo
+## 2. Escopo e Metodologia
 
-### Em escopo
+### 2.1 Fluxo Testado
 
-- Endpoint `/api/checkout/order` (POST) — fluxo principal.
-- Endpoint `/api/payments/charge` (POST) — dependência crítica.
-- Conexão com DB PostgreSQL e cache Redis.
+Lista numerada com endpoints reais.
 
-### Fora de escopo
+1. **Etapa 1 — Login.** `send-sms` → `verify-sms` → Firebase token exchange.
+2. **Etapa 2 — Home do App.** `GET /schedules`.
+3. **Etapa 3 — Home do Surf.** `GET /schedules/surf`, `/cms/news`, `/inscriptions`, `/schedules/surf/status` (paralelo).
+4. **Etapa 4 — Seleção de Membro e Data.** `GET /members`, `/schedules/surf/dates`, `/schedules/surf/intervals`.
+5. **Etapa 5 — Criação de Agendamento.** `POST /schedules/surf`.
 
-- Caminhos de erro / chargeback (testados em fluxo separado).
-- Integrações com gateways de pagamento (mockadas).
-- Front-end web/mobile (cobertura de Faro Web Vitals em produção).
+### 2.2 Configuração do K6
+
+Executor: `ramping-vus` com N estágios:
+
+- 0 a 200 VUs em 2 minutos (ramp-up gradual)
+- 200 a 500 VUs em 3 minutos
+- 500 a 850 VUs em 3 minutos
+- 850 VUs sustentados por 5 minutos
+- 850 a 0 VUs em 2 minutos (ramp-down)
+- Duração total: 15 minutos
+
+### 2.3 Otimizações do Script
+
+- **Token caching.** Login realizado 1x por VU; token reutilizado nas iterações seguintes.
+- **Think time** de 1-3s entre etapas (simula comportamento real).
+- **`send-sms` aceita status 400** (rate limiting por telefone) como resposta válida.
+
+### 2.4 Dados de Teste
+
+\<N\> usuários de teste carregados via CSV (\<origem\>). Cada VU recebe usuário único baseado no VU ID. Código SMS fixo (mock) para ambiente de teste.
 
 ---
 
-## Metodologia
+## 3. Infraestrutura de Teste
 
-### Ferramenta
+### 3.1 Ambiente \<plataforma, ex: EKS Dev\>
+
+Cluster: `<cluster-name>` (AWS account `<account-id>`, `<region>`).
+
+| Recurso | Original | Load Test |
+|---------|----------|-----------|
+| \<App\> pods | 1 (HPA min=1, max=3) | 6 (HPA min=6, max=10) |
+| \<Backend\> pods | 1 (HPA min=1, max=3) | 3 (HPA min=1, max=3) |
+| Database | \<spec inicial\> | \<spec durante teste\> |
+| Nodes EKS | \<N\> | \<M\> |
+
+### 3.2 K6 Load Test Runner
 
 | Item | Valor |
 |------|-------|
-| Ferramenta de carga | k6 v0.50 |
-| Local de origem | EC2 t3.xlarge × 4 (us-east-1) |
-| Modelo de carga | Ramp-up linear + sustained |
-| Duração total | 45 min |
+| Instância | EC2 c5.2xlarge (8 vCPU, 16GB RAM) — mesma VPC |
+| K6 Version | 1.6.1 |
+| Load Balancer alvo | NLB interno (\<dns-name\>) |
 
-### Modelo de carga
+### 3.3 Imagens Utilizadas
+
+| Componente | Imagem | Tag |
+|------------|--------|-----|
+| \<App\> | `<ecr-repo>/app` | `<git-sha>` |
+| \<Backend\> | `<ecr-repo>/backend` | `<git-sha>` |
+
+---
+
+## 4. Resultados dos Testes
+
+### 4.1 Métricas Gerais (ou Comparação entre Testes, se múltiplas rodadas)
+
+| Métrica | Teste 1 | Teste 2 | Teste 3 | Delta T2→T3 |
+|---------|---------|---------|---------|-------------|
+| Total de Requests | 146.140 | 138.220 | 152.870 | +11% |
+| Throughput (req/s) | 157 | 149 | 165 | +11% |
+| Iterações Completas | 111.568 | 105.310 | 119.840 | +14% |
+| Max VUs Atingidos | 850 | 850 | 850 | = |
+| Duração Total | 15m 30s | 15m 28s | 15m 25s | ~= |
+| Error rate | 39.86% | 31.10% | 23.65% | -24% |
+
+### 4.2 Latência por Etapa
+
+| Etapa | p50 | p95 | p99 | Avaliação |
+|-------|-----|-----|-----|-----------|
+| Login | 180 ms | 720 ms | 1200 ms | OK |
+| Home | 240 ms | 980 ms | 2100 ms | OK |
+| Surf Home (paralelo) | 380 ms | 2400 ms | 4800 ms | **NÃO OK** |
+| Seleção | 220 ms | 1100 ms | 2800 ms | OK |
+| Agendamento | 510 ms | 1840 ms | 3200 ms | atenção |
+
+### 4.3 Taxa de Sucesso por Endpoint
+
+| Endpoint | Sucesso | OK / Falha |
+|----------|---------|------------|
+| `POST /send-sms` | 99% | ~13k / ~2 |
+| `POST /verify-sms` | 6% | ~786 / ~12k |
+| `GET /schedules` | 99% | ~5.4k / ~54 |
+| `GET /schedules/surf/status` | 30% | ~3.1k / ~7.2k |
+| `POST /schedules/surf` | 100% | ~4.8k / 0 |
+
+### 4.4 Thresholds (Critérios de Aceite)
+
+| Critério | Meta | Observado | Resultado |
+|----------|------|-----------|-----------|
+| Sucesso geral ≥95% | 95% | 76.35% | **Falha** |
+| p95 geral <2s | <2s | 4.2s | **Falha** |
+| Erro por endpoint <5% | <5% | 23.65% | **Falha** |
+
+---
+
+## 5. Gargalo Principal: \<componente identificado\>
+
+### 5.1 Sintoma
+
+Texto direto. "Acima de \<N\> VUs, \<componente\> apresenta \<sintoma observável\>."
+
+### 5.2 Causa Raiz
+
+Explique a cadeia técnica. Cite logs, configurações, evidências.
+
+### 5.3 Evidência dos Logs
 
 ```text
-Fase 1 — Warm-up:    0 → 500 RPS    em 5 min
-Fase 2 — Ramp:    500 → 3000 RPS    em 15 min
-Fase 3 — Sustained: 3000 RPS        por 15 min
-Fase 4 — Stress: 3000 → 5000 RPS    em 5 min
-Fase 5 — Recovery:                  5 min idle
+2026-03-07T14:32:18 ERROR Could not obtain connection from pool
+  HikariPool-1.PoolBase: Connection is not available, request timed out after 30000ms
 ```
 
-### Payload
+---
 
-- Body médio: 1.2 KB (JSON com 14 campos).
-- Distribuição de produtos no carrinho: power-law (80% catálogo top-200).
-- Geração de carga: 30% novos usuários, 70% retornantes (cookie de sessão reutilizado).
+## 6. Gargalo Secundário: \<endpoint ou componente\>
+
+### 6.1 Causa
+
+(Padrão similar à seção 5 mas mais curto.)
 
 ---
 
-## Ambiente alvo
+## 7. Problemas de Infraestrutura \<ambiente\>
 
-### Infra
+### 7.1 \<problema observado durante o teste, ex: Imagens não disponíveis no ECR\>
 
-| Componente | Configuração |
-|------------|--------------|
-| Cluster | EKS 1.29, region us-east-1 |
-| Nodes | 6 × m5.2xlarge (8 vCPU, 32 GB) |
-| Pods checkout-api | 12 réplicas, HPA 4-30, request CPU 500m |
-| PostgreSQL | RDS db.r6g.4xlarge, max_connections=200 |
-| Redis | ElastiCache cache.m6g.large |
-
-### Observabilidade ativa
-
-- Elven Observability v2.x — coleta OTLP traces/métricas/logs.
-- Sentinel monitorando durante o teste; dashboards `loadtest-checkout-2026Q1` no Grafana.
-- Snapshot de queries Pyroscope coletado no minuto 20 e minuto 35.
+Detalhamento do issue + impacto + mitigação aplicada.
 
 ---
 
-## Cenários executados
+## 8. Recomendações
 
-### Cenário 1 — Baseline (sustained 3000 RPS por 15 min)
+### 8.1 Críticas (\<área\>)
 
-Objetivo: confirmar capacidade nominal.
+1. **Aumentar Max Pool Size do SQL Server** de 500 para 1000.
+2. **Implementar query timeout** explícito de 5s nas queries críticas.
+3. **Adicionar índice composto** em `<tabela>(coluna1, coluna2)`.
 
-### Cenário 2 — Stress (ramp para 5000 RPS)
+### 8.2 Importantes (\<área\>)
 
-Objetivo: encontrar o limite de degradação.
+1. \<ação\>
+2. \<ação\>
 
-### Cenário 3 — Endurance (3000 RPS por 60 min) — *opcional, fora deste relatório*
+### 8.3 Infraestrutura para Produção
 
-> **Nota:** Cenário 3 foi planejado mas adiado para a próxima janela de manutenção.
-
----
-
-## Resultados
-
-### Latência
-
-| Percentil | Cenário 1 (baseline) | Cenário 2 (stress) | Meta | Avaliação |
-|-----------|----------------------|--------------------|------|-----------|
-| p50 | 180 ms | 540 ms | <500 ms | **OK** (baseline) / **NÃO OK** (stress) |
-| p95 | 720 ms | 2400 ms | <1000 ms | **OK** / **NÃO OK** |
-| p99 | 1200 ms | 4800 ms | <2000 ms | **OK** / **NÃO OK** |
-| p99.9 | 2800 ms | 12000 ms | — | informativo |
-
-### Throughput
-
-- Cenário 1: 2980 RPS sustentado (target 3000; diferença <1%).
-- Cenário 2: throughput máximo 3450 RPS antes de degradação; acima disso aumenta erro.
-
-### Error rate
-
-| Cenário | HTTP 2xx | HTTP 4xx | HTTP 5xx | Timeout |
-|---------|----------|----------|----------|---------|
-| Cenário 1 | 99.94% | 0.03% | 0.02% | 0.01% |
-| Cenário 2 | 87.20% | 0.06% | 5.30% | 7.44% |
-
-### Saturação de recursos (Cenário 1)
-
-| Componente | Métrica | Valor médio | Pico |
-|------------|---------|-------------|------|
-| checkout-api (pods) | CPU | 62% | 78% |
-| checkout-api (pods) | Memory | 51% | 60% |
-| RDS PostgreSQL | CPU | 41% | 55% |
-| RDS PostgreSQL | Connections | 132/200 | 178/200 |
-| Redis | CPU | 12% | 18% |
-| Redis | Memory | 38% | 42% |
+1. Aumentar HPA `maxReplicas` do \<App\> de 10 para 20.
+2. Migrar nodes EKS para m6i.xlarge (melhor IPC).
 
 ---
 
-## Análise de bottlenecks
+## 9. Próximos Passos
 
-### Bottleneck principal — DB connections (Cenário 2)
+Lista numerada de ações concretas com owner.
 
-Acima de 3500 RPS, pool de conexões saturou (200/200) e novas requests entraram em timeout.
-
-**Evidência (Grafana Mimir):**
-
-```text
-pg_stat_database_active_connections{datname="checkout"}
-```
-
-Curva sobe de 132 (estável) → 200 (saturação) em 90 segundos.
-
-**Recomendação imediata.** Implementar PgBouncer com pool transaction-level entre app e RDS. Estimativa de ganho: ~2x capacidade de connections lógicas.
-
-### Bottleneck secundário — alocação de objetos JSON (checkout-api)
-
-Pyroscope (CPU profile no minuto 35) mostra 28% do tempo CPU em `json.Marshal`.
-
-**Recomendação.** Avaliar pre-alocação de buffers ou troca para `jsoniter` / `ffjson`. Ganho estimado: 15-20% de capacidade adicional.
+1. **Time \<X\>:** Aumentar Max Pool Size do SQL Server e aplicar otimizações de query.
+2. **Time \<Y\>:** Implementar cache para `/schedules/surf/status` e paralelizar chamadas.
+3. **Time Elven + Time Cliente:** Re-executar teste de carga após otimizações para validar melhoria.
 
 ---
 
-## Comparação com SLOs
+## 10. Conclusão
 
-| SLO declarado | Meta | Observado (Cenário 1) | Avaliação |
-|---------------|------|------------------------|-----------|
-| Disponibilidade (success rate) | 99.9% | 99.94% | **passa** |
-| Latência p95 | <1000 ms | 720 ms | **passa** |
-| Throughput sustentado | ≥3000 RPS | 2980 RPS | **passa** (no limite) |
-| Saturação CPU pods | <80% | 78% pico | **passa** (no limite) |
+1-2 parágrafos fechando. Pode incluir:
 
-> **Atenção:** Throughput e saturação CPU **no limite**. Crescimento de tráfego de 5% já estoura saturação CPU. Recomendação: ampliar HPA `max` de 30 para 50 réplicas antes de pico sazonal.
-
----
-
-## Recomendações
-
-Ordenadas por impacto e esforço.
-
-| # | Recomendação | Impacto | Esforço | Prazo sugerido |
-|---|--------------|---------|---------|----------------|
-| 1 | Implementar PgBouncer | Alto | Médio | 30 dias |
-| 2 | Ampliar HPA max de 30 → 50 | Médio | Baixo | 7 dias |
-| 3 | Profilling de `json.Marshal` e otimização | Médio | Médio | 60 dias |
-| 4 | Criar SLO formal de p99 (hoje só p95 declarado) | Médio | Baixo | 30 dias |
-| 5 | Executar cenário de endurance (60 min) | Baixo | Baixo | 30 dias |
-
----
-
-## Anexos
-
-- Dashboards Grafana: `loadtest-checkout-2026Q1`, `loadtest-checkout-2026Q1-resources`.
-- Scripts k6: repo `<cliente>/loadtest-checkout` branch `2026Q1`.
-- Pyroscope snapshots: `/tmp/pyroscope-snapshots/2026-03-06/*.pb.gz` (anexar separadamente).
-- Logs do controlador HPA durante o teste: `kubectl -n checkout describe hpa checkout-api`.
-
----
-
-## Glossário
-
-- **RPS** — Requests Per Second; carga aplicada e sustentada.
-- **p95 / p99 / p99.9** — percentis de latência; p99 = 99% das requests ficam abaixo do valor.
-- **HPA** — Horizontal Pod Autoscaler; mecanismo Kubernetes.
-- **PgBouncer** — connection pooler entre aplicação e PostgreSQL.
-- **k6** — ferramenta de load testing.
-- **Pyroscope** — ferramenta de continuous profiling da Elven.
-- **Endurance test** — teste sustentado por período longo (1h+) que revela leaks e degradação gradual.
+- Status geral (aprovado / aprovado com ressalvas / reprovado).
+- O que mudou face às rodadas anteriores (se houver).
+- Próxima rodada de teste prevista.

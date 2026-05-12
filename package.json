@@ -1,6 +1,6 @@
 {
   "name": "@elven-observability/docs-skill",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Anthropic skill-creator pack codifying Elven Works documentation standards: 9 canonical templates (instrumentation guides, stack installation, frontend SDK, PDtec specs, and PS client reports), frontmatter+lint binary gate, and PDF rendering with Elven branding.",
   "license": "MIT",
   "author": "Elven Works <docs@elven.works>",

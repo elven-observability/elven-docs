@@ -112,71 +112,93 @@ Estrutura curta. TOC opcional. Headings flexíveis em torno do tópico, mas esco
 - `## Checklist de deploy` (lista `- [ ]`) — opcional
 - `## Troubleshooting` (sintoma → causa → fix) — recomendado
 
+### PS reports — padrão derivado de PDFs reais
+
+**Padrão crítico observado em todos os 7 PDFs reais entregues a cliente Beyond:**
+
+- **Sumário** é H2 = lista NUMERADA estática (não TOC com links âncora). Reflete sumário impresso de relatório, não navegação web.
+- **Headings de seção têm numeração decimal embarcada.** `## 1. Resumo Executivo`, `### 2.1 Fluxo Testado`. Lint v0.3.0 valida que pelo menos um H2 segue esse padrão.
+- **NÃO usar:** "Sumário Executivo" (real usa "Resumo Executivo"), "Análise dos 5 porquês", "Glossário" no fim, "Plano de Ação" como tabela formal.
+- **Persona técnica primária.** PDFs são deep-dives técnicos com queries CloudWatch/Loki/Prometheus, tabelas extensas de métricas por pod. Stakeholder lê o `## 1. Resumo Executivo` apenas.
+
 ### `ps-incident-report`
 
-Ordem canônica (rígida):
+Ordem canônica (rígida), modelo Beyond:
 
-1. `## Sumário`
-2. `## Sumário executivo` (3-5 parágrafos para stakeholder)
-3. `## Linha do tempo` (tabela cronológica em BRT)
-4. `## Impacto` (usuário final, negócio, sistemas)
-5. `## Detecção` (MTTD)
-6. `## Mitigação e recuperação` (MTTR)
-7. `## Causa raiz`
-8. `## Análise dos 5 porquês` (opcional mas recomendado)
-9. `## Lições aprendidas`
-10. `## Plano de ação` (tabela: # / ação / responsável / prazo / status)
-11. `## Glossário`
+1. `## Sumário` (lista numerada das seções)
+2. `## 1. Informações da Sessão` (tabela: Data/Hora, Usuário, Trace ID, Title/Member ID, Ambiente, Log Group)
+3. `## 2. Timeline do Incidente` (tabela cronológica BRT)
+4. `## 3. Causa Raiz`
+   - `### 3.1 <sintoma técnico>`
+   - `### 3.2 Volume / magnitude` (tabela quantificada)
+   - `### 3.3 Endpoints / componentes afetados`
+   - `### 3.4 Padrão de erro` (stack trace ou cadeia de exceção)
+   - `### 3.5 Conclusão`
+5. `## 4. Queries — Loki / CloudWatch Logs Insights` (6+ queries reproduzíveis)
+6. `## 5. Recomendação`
 
 ### `ps-load-test-report`
 
-Ordem canônica (rígida):
+Ordem canônica (rígida), modelo Beyond:
 
 1. `## Sumário`
-2. `## Sumário executivo`
-3. `## Objetivo do teste`
-4. `## Escopo` (em escopo / fora de escopo)
-5. `## Metodologia` (ferramenta, modelo de carga, payload)
-6. `## Ambiente alvo`
-7. `## Cenários executados`
-8. `## Resultados` (latência, throughput, error rate, saturação)
-9. `## Análise de bottlenecks`
-10. `## Comparação com SLOs`
-11. `## Recomendações`
-12. `## Anexos`
-13. `## Glossário`
+2. `## 1. Resumo Executivo`
+3. `## 2. Escopo e Metodologia`
+   - `### 2.1 Fluxo Testado`
+   - `### 2.2 Configuração do K6`
+   - `### 2.3 Otimizações do Script`
+   - `### 2.4 Dados de Teste`
+4. `## 3. Infraestrutura de Teste`
+   - `### 3.1 Ambiente <plataforma>`
+   - `### 3.2 K6 Load Test Runner`
+   - `### 3.3 Imagens Utilizadas`
+5. `## 4. Resultados dos Testes`
+   - `### 4.1 Métricas Gerais`
+   - `### 4.2 Latência por Etapa`
+   - `### 4.3 Taxa de Sucesso por Endpoint`
+   - `### 4.4 Thresholds (Critérios de Aceite)`
+6. `## 5. Gargalo Principal: <componente>` (com 5.1 Sintoma / 5.2 Causa Raiz / 5.3 Evidência dos Logs)
+7. `## 6. Gargalo Secundário: <componente>`
+8. `## 7. Problemas de Infraestrutura <ambiente>`
+9. `## 8. Recomendações` (subseções por prioridade: Críticas / Importantes / Infraestrutura)
+10. `## 9. Próximos Passos`
+11. `## 10. Conclusão`
 
 ### `ps-comparative-report`
 
-Ordem canônica (rígida):
+Ordem canônica (rígida), modelo Beyond:
 
 1. `## Sumário`
-2. `## Sumário executivo`
-3. `## Pergunta sob comparação`
-4. `## Cenários A e B`
-5. `## Metodologia`
-6. `## Métricas lado a lado`
-7. `## Análise do delta`
-8. `## Trade-offs identificados`
-9. `## Recomendação` (com plano de migração se decisão for adotar uma das opções)
-10. `## Anexos`
-11. `## Glossário`
+2. `## 1. Contexto`
+3. `## 2. Visão Geral` (tabela: Métrica | A | B | Diferença)
+4. `## 3. <Dimensão 1, ex: Taxa de Sucesso por Endpoint>`
+5. `## 4. <Dimensão 2, ex: Quantidade de Requests por Endpoint>`
+6. `## 5. <Dimensão 3, ex: Tempos de Resposta por Etapa do Fluxo>`
+7. `## 6. <Foco específico, ex: Endpoint Crítico: /schedules/surf/status>` (quando há endpoint que concentra delta)
+8. `## 7. Conclusão`
 
 ### `ps-spike-report`
 
-Ordem canônica (rígida):
+Ordem canônica (rígida), modelo Beyond:
 
 1. `## Sumário`
-2. `## Sumário executivo`
-3. `## Janela observada`
-4. `## Métricas afetadas`
-5. `## Linha do tempo curta`
-6. `## Hipóteses levantadas` (tabela: hipótese / status)
-7. `## Análise das hipóteses`
-8. `## Conclusão`
-9. `## Recomendações`
-10. `## Anexos`
-11. `## Glossário`
+2. `## 1. Resumo Executivo` (com "RESULTADO:" em bold inline)
+3. `## 2. Preparação Realizada Antes do Pico`
+   - `### 2.1 Escalamento Preventivo` (tabela: Componente | Antes | Depois | Observação)
+   - `### 2.2 Correções Aplicadas` (lista de fixes)
+4. `## 3. Cronologia do Spike` (tabela ampla: Horário | Evento | métricas-chave | Erros)
+5. `## 4. Métricas Detalhadas`
+   - `### 4.1 CPU por Pod — <componente principal>`
+   - `### 4.2 CPU por Pod — <outro componente>`
+   - `### 4.3 Memória — <componente>`
+   - `### 4.4 Nodes — Saturação`
+6. `## 5. Análise de Gargalos`
+   - `### 5.1 Gargalo #1: <componente> (CRÍTICO|MÉDIO|BAIXO)`
+   - `### 5.2 Gargalo #2: ...`
+   - `### 5.X Não-Gargalo: <componentes que se saíram bem>`
+7. `## 6. Comportamento do HPA` (tabela)
+8. `## 7. Recomendações (Priorização)` (tabela: # | Ação | Impacto | Esforço | Prioridade P0-P3)
+9. `## 8. Conclusão`
 
 ---
 

@@ -6,6 +6,36 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e es
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-12
+
+### Changed (breaking pra autores de PS reports)
+
+- **4 templates PS reescritos** espelhando estrutura real dos 7 PDFs entregues a cliente Beyond:
+  - Headings com **numeração decimal embarcada** (`## 1. Resumo Executivo`, `### 2.1 Fluxo Testado`) — era textual em v0.2.0.
+  - `## Sumário` agora é **lista numerada estática**, não TOC com links âncora.
+  - Removido: "Sumário Executivo" (real usa "Resumo Executivo"), "Análise dos 5 porquês", "Glossário" no fim, "Plano de Ação" como tabela formal.
+  - `ps-incident-report` agora começa com "Informações da Sessão" (trace ID, member ID, log group) — padrão diagnóstico real.
+  - `ps-incident-report` inclui seção "Queries — Loki / CloudWatch Logs Insights" com 6+ queries reproduzíveis.
+  - `ps-load-test-report` segue ossatura Beyond v1-v3: Resumo Exec → Escopo+Metodologia → Infra → Resultados → Gargalo Principal → Gargalo Secundário → Problemas Infra → Recomendações → Próximos Passos → Conclusão.
+  - `ps-comparative-report` simplificado: Contexto → Visão Geral → tabelas comparativas por dimensão → Conclusão.
+  - `ps-spike-report` inclui "Preparação Realizada Antes do Pico" (escalamento preventivo, correções aplicadas) — padrão real Beyond.
+- **Persona primária dos PS reports corrigida** de `cliente-stakeholder` (errado em v0.2.0) para `cliente-eng` + `cliente-sre`. Stakeholder lê só o `## 1. Resumo Executivo`; engenheiro/SRE técnico consome o doc inteiro.
+- **Lint item 6** atualizado para PS reports:
+  - Exige `## Sumário` (lista numerada).
+  - Exige pelo menos um H2 com numeração decimal (`^## \d+\. `).
+  - Removida exigência de `## Sumário executivo`.
+
+### Added
+
+- **Mermaid render no PDF.** Blocos ` ```mermaid ` viram SVG renderizado via Mermaid.js (CDN jsdelivr@11) durante o render Puppeteer. Theme variables ajustadas pra cores Elven. `waitForFunction` aguarda `__mermaidReady__` por até 15s.
+- **Resolver de imagens locais.** `<img src="./caminho/relativo.png">` é convertido em `data:image/png;base64,...` antes do render. Suporta PNG, JPEG, GIF, SVG, WebP. Resolução relativa ao diretório do `.md`. Loga warning se arquivo ausente; preserva src original.
+- **CSS para `.mermaid`** nos 2 temas (espaçamento, centralização, max-width).
+- **Fixture pass-mermaid-and-image** valida ambas features end-to-end.
+
+### Validated against real PDFs
+
+7 PDFs reais de `docs/ps/` (cliente Beyond) extraídos via pdftotext e comparados aos templates v0.2.0. Drift sério encontrado em headings, persona, vocabulário. v0.3.0 corrige espelhando a realidade — **não impondo um upgrade não solicitado**.
+
 ## [0.2.0] - 2026-05-12
 
 ### Added
@@ -78,6 +108,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e es
 - Tradução pt→en — repo é pt-BR-only.
 - Migração retroativa dos 12 docs legados — Fase 7 separada (PR mecânico pós-v0.1.0).
 
-[Unreleased]: https://github.com/elven-observability/elven-docs/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/elven-observability/elven-docs/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/elven-observability/elven-docs/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/elven-observability/elven-docs/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/elven-observability/elven-docs/releases/tag/v0.1.0

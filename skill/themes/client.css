@@ -257,6 +257,25 @@ img {
   page-break-inside: avoid;
 }
 
+/* === Mermaid diagrams === */
+
+pre.mermaid {
+  background: transparent;
+  color: inherit;
+  padding: 4mm 0;
+  margin: 4mm auto;
+  text-align: center;
+  font-family: inherit;
+  font-size: inherit;
+  page-break-inside: avoid;
+  overflow: visible;
+}
+
+pre.mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
 /* === Cover header injected by render-pdf.js (optional) === */
 
 .elven-cover {

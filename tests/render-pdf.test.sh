@@ -80,6 +80,7 @@ test_one() {
 
 test_one "$FIXTURES/pass-ps-incident-report.md" "client"
 test_one "$FIXTURES/pass-language-guide.md" "internal"
+test_one "$FIXTURES/pass-mermaid-and-image.md" "internal"
 
 echo
 if [ $fail_count -gt 0 ]; then

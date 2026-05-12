@@ -177,3 +177,21 @@ hr {
   border-top: 0.5pt solid #e0e4eb;
   margin: 5mm 0;
 }
+
+/* Mermaid diagrams */
+pre.mermaid {
+  background: transparent;
+  color: inherit;
+  padding: 3mm 0;
+  margin: 3mm auto;
+  text-align: center;
+  font-family: inherit;
+  font-size: inherit;
+  page-break-inside: avoid;
+  overflow: visible;
+}
+
+pre.mermaid svg {
+  max-width: 100%;
+  height: auto;
+}

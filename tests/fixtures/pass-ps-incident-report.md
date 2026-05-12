@@ -2,51 +2,72 @@
 title: Relatório de Incidente — TestCo — 2026-04-15
 slug: pass-ps-incident-report
 type: ps-incident-report
-audience: [cliente-stakeholder, cliente-eng, cliente-sre, eng-elven]
+audience: [cliente-eng, cliente-sre, cliente-stakeholder, eng-elven]
 incident_id: "INC-2026-9999"
 incident_date: "2026-04-15"
 client: "TestCo"
 severity: "SEV2"
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-12
 status: stable
 owner: ps@elven.works
 ---
 
-# Relatório de Incidente — TestCo — 2026-04-15
+# War Room — Análise de Lentidão | 15/04/2026 ~14h
 
-Fixture de teste do lint para `ps-incident-report`.
+Fixture de teste do lint para `ps-incident-report` v0.3.0.
 
 ---
 
 ## Sumário
 
-- [Sumário executivo](#sumário-executivo)
-- [Linha do tempo](#linha-do-tempo)
-- [Glossário](#glossário)
+1. Informações da Sessão
+2. Timeline do Incidente
+3. Causa Raiz
+4. Recomendação
 
 ---
 
-## Sumário executivo
+## 1. Informações da Sessão
 
-Texto de exemplo.
+| Campo | Valor |
+|-------|-------|
+| Data/Hora | 15/04/2026 a partir das 14:00 BRT |
+| Trace ID | `abc123-def456-fixture` |
+| Ambiente | Produção (testco-prod) |
 
 > **Importante:** Este é fixture de teste; valores não são reais.
 
 ---
 
-## Linha do tempo
+## 2. Timeline do Incidente
 
-| Hora | Evento |
-|------|--------|
-| 10:00 | Início |
-| 10:42 | Fim |
+| Hora (BRT) | Evento |
+|------------|--------|
+| 14:00 | Início |
+| 14:42 | Fim (auto-recovery) |
 
 ```bash
-echo "comando de exemplo"
+curl -s https://testco.example.com/health
 ```
 
 ---
 
-## Glossário
+## 3. Causa Raiz
 
-- **SEV2** — severidade média.
+### 3.1 Pool de DB saturado
+
+Texto curto.
+
+```text
+HikariPool-1: Connection is not available, request timed out after 30000ms
+```
+
+### 3.2 Conclusão
+
+Pool default era 100; carga sustentada precisa de 200+.
+
+---
+
+## 4. Recomendação
+
+Aumentar `max_connections` para 200. Validar com novo teste de carga.

@@ -134,6 +134,88 @@ function addCalloutClasses(html) {
   );
 }
 
+function decodeHtmlEntities(s) {
+  return String(s)
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+function transformMermaidBlocks(html) {
+  // Após marked.parse(), blocos ```mermaid ... ``` viram:
+  //   <pre><code class="language-mermaid">...</code></pre>
+  // Para o mermaid.js renderizar, precisamos:
+  //   <pre class="mermaid">DIAGRAMA EM TEXTO PURO</pre>
+  // Retorna {html, hasMermaid}.
+  let hasMermaid = false;
+  const transformed = html.replace(
+    /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g,
+    (match, content) => {
+      hasMermaid = true;
+      const decoded = decodeHtmlEntities(content);
+      return `<pre class="mermaid">${decoded}</pre>`;
+    }
+  );
+  return { html: transformed, hasMermaid };
+}
+
+function resolveLocalImages(html, inputAbs) {
+  // Converte <img src="path-relativo"> em <img src="data:image/...;base64,...">
+  // - Pula URLs absolutas (http://, https://, file://, data:).
+  // - Resolve path relativo ao diretório do .md.
+  // - Suporta extensões comuns: png, jpg, jpeg, gif, svg, webp.
+  // - Em caso de erro (arquivo ausente), mantém src original e loga warning.
+  const inputDir = path.dirname(inputAbs);
+  const warnings = [];
+
+  const transformed = html.replace(
+    /<img\s+([^>]*?)src="([^"]+)"([^>]*)>/g,
+    (match, before, src, after) => {
+      if (/^(https?:|file:|data:|\/\/)/i.test(src)) {
+        return match; // já é absoluta
+      }
+      const filePath = path.isAbsolute(src)
+        ? src
+        : path.resolve(inputDir, src);
+      if (!fs.existsSync(filePath)) {
+        warnings.push(`imagem não encontrada: ${src} (resolvido em ${filePath})`);
+        return match;
+      }
+      const ext = path.extname(filePath).slice(1).toLowerCase();
+      const mimeMap = {
+        png: "image/png",
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        gif: "image/gif",
+        svg: "image/svg+xml",
+        webp: "image/webp",
+      };
+      const mime = mimeMap[ext];
+      if (!mime) {
+        warnings.push(`extensão de imagem não suportada: .${ext} (${src})`);
+        return match;
+      }
+      try {
+        const data = fs.readFileSync(filePath);
+        const base64 =
+          ext === "svg" ? encodeURIComponent(data.toString("utf8")) : data.toString("base64");
+        const dataUri =
+          ext === "svg"
+            ? `data:image/svg+xml,${base64}`
+            : `data:${mime};base64,${base64}`;
+        return `<img ${before}src="${dataUri}"${after}>`;
+      } catch (e) {
+        warnings.push(`erro lendo ${filePath}: ${e.message}`);
+        return match;
+      }
+    }
+  );
+
+  return { html: transformed, warnings };
+}
+
 function buildCoverHtml(fields, themeName) {
   if (themeName !== "client") return "";
   const title = fields.title || "(sem título)";
@@ -222,14 +304,50 @@ async function renderPDF({ input, out, theme }) {
   let html = marked.parse(body);
   html = addCalloutClasses(html);
 
+  // Transformação: Mermaid blocks → <pre class="mermaid">
+  const mermaidResult = transformMermaidBlocks(html);
+  html = mermaidResult.html;
+  const hasMermaid = mermaidResult.hasMermaid;
+
+  // Transformação: imagens locais → data URI
+  const imgResult = resolveLocalImages(html, inputAbs);
+  html = imgResult.html;
+  for (const warn of imgResult.warnings) {
+    process.stderr.write(`  ! warning: ${warn}\n`);
+  }
+
   const cover = buildCoverHtml(fields, themeName);
+
+  // Mermaid script via CDN (loaded only if needed)
+  const mermaidScript = hasMermaid
+    ? `
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: "default",
+      themeVariables: {
+        primaryColor: "#0d1530",
+        primaryTextColor: "#0d1530",
+        primaryBorderColor: "#c95b29",
+        lineColor: "#34405c",
+        secondaryColor: "#fdf5ef",
+        tertiaryColor: "#f8f9fb"
+      },
+      flowchart: { htmlLabels: true, curve: "basis" },
+      securityLevel: "loose"
+    });
+    window.__mermaidReady__ = false;
+    mermaid.run().then(() => { window.__mermaidReady__ = true; });
+  </script>`
+    : "";
 
   const fullHtml = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <title>${escapeHtml(fields.title || path.basename(inputAbs))}</title>
-  <style>${css}</style>
+  <style>${css}</style>${mermaidScript}
 </head>
 <body>
   ${cover}
@@ -250,6 +368,20 @@ async function renderPDF({ input, out, theme }) {
   try {
     const page = await browser.newPage();
     await page.setContent(fullHtml, { waitUntil: "networkidle0" });
+
+    if (hasMermaid) {
+      // Espera o Mermaid renderizar os diagramas (timeout 15s pra rodadas mais lentas).
+      try {
+        await page.waitForFunction(() => window.__mermaidReady__ === true, {
+          timeout: 15000,
+        });
+      } catch (e) {
+        process.stderr.write(
+          `  ! warning: Mermaid não terminou em 15s. PDF segue, diagramas podem estar incompletos.\n`
+        );
+      }
+    }
+
     await page.pdf({
       path: outAbs,
       format: "A4",

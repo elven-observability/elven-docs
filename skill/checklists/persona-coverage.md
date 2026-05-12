@@ -26,10 +26,12 @@ Matriz template × persona. Cada doc DECLARA `audience` no frontmatter; o lint a
 | `stack-installation-guide` | — | ✓ primário | — | ✓ secundário | ✓ autoria | ✓ contexto arquitetural |
 | `frontend-sdk-guide` | ✓ primário (frontend) | — | — | ✓ secundário | ✓ autoria | — |
 | `pdtec-spec` | ✓ primário (PDtec) | — | — | ✓ secundário | ✓ autoria | ✓ entender convenção PDtec |
-| `ps-incident-report` | ✓ secundário (lê detalhe técnico) | ✓ secundário | ✓ primário (Sumário Executivo) | ✓ secundário | ✓ autoria | — |
-| `ps-load-test-report` | ✓ secundário | ✓ secundário (recomendações) | ✓ primário | ✓ secundário | ✓ autoria | — |
-| `ps-comparative-report` | ✓ secundário | ✓ secundário | ✓ primário (decisão) | ✓ secundário | ✓ autoria | — |
-| `ps-spike-report` | ✓ primário (debug técnico) | ✓ primário | ✓ secundário (sumário) | ✓ secundário | ✓ autoria | — |
+| `ps-incident-report` | ✓ **primário** (lê queries Loki, stack traces, debug técnico) | ✓ **primário** (recebe a recomendação técnica final) | ✓ secundário (lê Resumo Executivo apenas) | ✓ secundário | ✓ autoria | — |
+| `ps-load-test-report` | ✓ **primário** (análise de gargalos, evidência de logs) | ✓ **primário** (próximos passos infra) | ✓ secundário (Resumo Executivo) | ✓ secundário | ✓ autoria | — |
+| `ps-comparative-report` | ✓ **primário** (delta técnico endpoint a endpoint) | ✓ **primário** (operação) | ✓ secundário (Conclusão) | ✓ secundário | ✓ autoria | — |
+| `ps-spike-report` | ✓ **primário** (CPU por pod, queries Prometheus) | ✓ **primário** (HPA, capacity planning) | ✓ secundário (Resumo Executivo) | ✓ secundário | ✓ autoria | — |
+
+> **Realinhamento v0.3.0 (honesto).** Em v0.2.0 declaramos `cliente-stakeholder` como persona PRIMÁRIA dos PS reports — errado. Análise dos 7 PDFs reais entregues a cliente Beyond mostra que esses docs são **technical deep-dives** com queries CloudWatch/Loki/Prometheus, tabelas de CPU por pod, stack traces literais. Stakeholder só lê o `## 1. Resumo Executivo`. Engenheiro/SRE técnico do cliente é quem CONSOME o documento inteiro.
 
 Legenda:
 

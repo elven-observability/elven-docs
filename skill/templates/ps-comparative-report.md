@@ -1,224 +1,148 @@
 ---
-title: Relatório Comparativo — <Cliente> — <A> vs <B>
+title: Comparativo — <Cliente> — <A> vs <B>
 slug: <YYYYMMDD>-relatorio-comparativo-<cliente>-<a>-vs-<b>
 type: ps-comparative-report
-audience: [cliente-stakeholder, cliente-eng, cliente-sre, eng-elven]
+audience: [cliente-eng, cliente-sre, cliente-stakeholder, eng-elven]
 report_date: "2026-MM-DD"
 client: "<nome-do-cliente>"
 baseline_label: "<A — descrição curta>"
 comparison_label: "<B — descrição curta>"
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-12
 status: draft
 owner: ps@elven.works
 ---
 
-# Relatório Comparativo — <Cliente> — <A> vs <B>
+# Comparativo de \<dimensão\>: \<A\> vs \<B\>
 
-Relatório formal entregue pela Elven Works comparando dois cenários, versões, ambientes ou configurações. Documenta metodologia, métricas em paralelo, análise do delta e conclusão.
-
-> **Importante:** Este documento é confidencial. Os números refletem condições da coleta; podem variar em produção real.
+> Header de página: `<Cliente> | Elven Works — Relatório de Teste de Carga` (ou similar).
+> Subtítulo: condições do teste (data, ferramenta, configuração).
 
 ---
 
 ## Sumário
 
-- [Sumário executivo](#sumário-executivo)
-- [Pergunta sob comparação](#pergunta-sob-comparação)
-- [Cenários A e B](#cenários-a-e-b)
-- [Metodologia](#metodologia)
-- [Métricas lado a lado](#métricas-lado-a-lado)
-- [Análise do delta](#análise-do-delta)
-- [Trade-offs identificados](#trade-offs-identificados)
-- [Recomendação](#recomendação)
-- [Anexos](#anexos)
-- [Glossário](#glossário)
+1. Contexto
+2. Visão Geral
+3. \<Dimensão 1, ex: Taxa de Sucesso por Endpoint\>
+4. \<Dimensão 2, ex: Quantidade de Requests por Endpoint\>
+5. \<Dimensão 3, ex: Tempos de Resposta por Etapa do Fluxo\>
+6. \<Foco específico, ex: Endpoint Crítico: /schedules/surf/status\>
+7. Conclusão
 
 ---
 
-## Sumário executivo
+## 1. Contexto
 
-3-5 parágrafos:
+1-2 parágrafos. Padrão:
 
-1. **O que foi comparado** (ex: "Cluster Beyond v2 vs ambiente HML atual").
-2. **Resultado principal** em 1 frase quantitativa (ex: "Beyond v2 entrega -42% de latência p95 com +18% de custo computacional").
-3. **Decisão recomendada** (adotar A / adotar B / aguardar mais dados).
-4. **Riscos da decisão.**
-5. **Próximo passo crítico.**
+> Este relatório compara os resultados de \<O QUE\> executados contra dois \<O QUÊ\>:
 
----
+- **\<A\>:** \<descrição completa, host, account, data do teste\>.
+- **\<B\>:** \<descrição completa, host, account, data do teste\>.
 
-## Pergunta sob comparação
-
-Texto direto:
-
-- **Pergunta de negócio.** Ex: "Migrar para Beyond v2 vale o investimento adicional de 18% em compute?"
-- **Hipótese sob teste.** Ex: "Beyond v2 entrega ganho de latência > 30% suficiente para justificar custo extra."
-- **Critério de decisão.** Ex: "Adotar Beyond v2 se p95 cair >30% E custo total não subir >25%."
+Ambos os testes utilizaram a mesma configuração: \<configuração relevante, ferramenta, base de dados, infra, script\>. Identidade de carga garantida por \<método: traffic shadowing / replay de CSV / mesmo runner\>.
 
 ---
 
-## Cenários A e B
+## 2. Visão Geral
 
-### Cenário A — <Baseline>
+Tabela primária com **3 colunas** (A | B | Diferença), métricas agregadas:
 
-| Aspecto | Valor |
-|---------|-------|
-| Nome curto | <ex: HML atual> |
-| Versão / config | <ex: Stack v1.4.0> |
-| Infra | <ex: 6 nodes m5.2xlarge> |
-| Período de coleta | <ex: 04/03/2026 a 06/03/2026> |
-| Carga aplicada | <ex: tráfego espelhado de produção, 80%> |
+| Métrica | \<A\> | \<B\> | Diferença |
+|---------|-------|-------|-----------|
+| Total de requests | 86.061 | 66.334 | -23% |
+| Throughput (req/s) | 93.4 | 71.4 | -24% |
+| Iterações completas | 18.639 | 16.335 | -12% |
+| Iterações interrompidas | 331 | 512 | +55% |
+| Iterações/s | 20.2 | 17.6 | -13% |
+| error_rate | 17.96% | 23.10% | +5.1pp |
+| http_req_failed | 38.77% | 46.95% | +8.2pp |
+| checks_succeeded | 79.74% | 73.45% | -6.3pp |
+| HTTP p95 (geral) | 33.23s | 50.9s | +53% |
+| HTTP p95 (sucesso) | 21.23s | 39.14s | +84% |
+| HTTP avg (geral) | 5.97s | 8.82s | +48% |
+| HTTP avg (sucesso) | 4.7s | 9.29s | +98% |
+| Data received | 259 MB | 228 MB | -12% |
+| Data sent | 83 MB | 59 MB | -29% |
 
-### Cenário B — <Comparação>
-
-| Aspecto | Valor |
-|---------|-------|
-| Nome curto | <ex: Beyond v2> |
-| Versão / config | <ex: Stack v2.0.0-rc.3> |
-| Infra | <ex: 6 nodes m6i.2xlarge + Beyond features ON> |
-| Período de coleta | <ex: 04/03/2026 a 06/03/2026> |
-| Carga aplicada | <ex: idêntica ao Cenário A — espelho do mesmo tráfego> |
-
-> **Importante:** A carga aplicada nos dois cenários precisa ser comparável; senão a comparação é inválida. Aqui usou-se traffic shadowing em paralelo durante a mesma janela.
-
----
-
-## Metodologia
-
-### Como a comparação foi feita
-
-1. Traffic shadowing aplicado: requests reais de produção foram espelhados em paralelo para Cenário B durante 48h.
-2. Métricas coletadas pela Elven Observability em ambos os ambientes simultaneamente.
-3. Dashboards Grafana com painéis lado a lado (datasource diferente por cenário).
-4. Janela de comparação: 48 horas (sex 04/03 18:00 → dom 06/03 18:00).
-5. Janela de análise: 24 horas centrais (sáb 05/03 00:00 → dom 06/03 00:00) — exclui ramp-up de shadow e warm-up.
-
-### O que NÃO foi feito (limitações)
-
-- **Não houve teste de stress.** Comparação reflete carga normal de produção, não pico.
-- **Não foi avaliado** comportamento sob falha (chaos engineering).
-- **Custo de migração** não está incluído (apenas custo operacional contínuo).
+> **Padrão de leitura.** "O \<B\> apresentou desempenho \<adjetivo\> ao \<A\>: \<delta1\> menos requests, throughput \<delta2\> menor, tempos de resposta \<delta3\> mais lentos."
 
 ---
 
-## Métricas lado a lado
+## 3. Taxa de Sucesso por Endpoint
 
-### Latência (p50, p95, p99)
+Tabela ampliada com 5 colunas (Endpoint | A Sucesso | A OK/Falha | B Sucesso | B OK/Falha | Delta).
 
-| Métrica | Cenário A | Cenário B | Delta | Avaliação |
-|---------|-----------|-----------|-------|-----------|
-| p50 | 320 ms | 180 ms | **-44%** | melhora significativa |
-| p95 | 1240 ms | 720 ms | **-42%** | melhora significativa |
-| p99 | 2800 ms | 1380 ms | **-51%** | melhora significativa |
-| p99.9 | 8200 ms | 3100 ms | **-62%** | melhora significativa |
+| Endpoint | \<A\> Sucesso | \<A\> OK / Falha | \<B\> Sucesso | \<B\> OK / Falha | Delta |
+|----------|----|----|----|----|----|
+| `POST /send-sms` | 99% | ~13k / ~2 | 99% | 13.011 / 2 | = |
+| `POST /verify-sms` | 6% | ~786 / ~12k | 6% | 786 / 12.225 | = |
+| `GET /schedules` | 99% | ~5.4k / ~54 | 99% | 4.564 / 44 | = |
+| `GET /schedules/surf` | 99% | ~5.3k / ~53 | 98% | 4.315 / 64 | -1pp |
+| `GET /cms/news` | 98% | ~5.3k / ~106 | 98% | 4.325 / 54 | = |
+| `GET /inscriptions` | 98% | ~5.3k / ~106 | 96% | 4.213 / 166 | -2pp |
+| `GET /schedules/surf/status` | 57% | ~3.1k / ~2.3k | 40% | 1.789 / 2.590 | -17pp |
+| `GET /members` | 99% | ~5.3k / ~53 | 99% | 4.333 / 30 | = |
+| `POST /schedules/surf` | 100% | ~4.8k / 0 | 100% | ~4.1k / 0 | = |
 
-### Throughput
+> Pp = "percentage points". Use quando diferença é em pontos percentuais, não percentual relativo.
 
-| Métrica | Cenário A | Cenário B | Delta |
-|---------|-----------|-----------|-------|
-| RPS sustentado | 2400 | 2400 | 0% (idêntico, por design do shadow) |
-| Capacidade pico observada | 3200 | 4100 | **+28%** |
-
-### Error rate
-
-| Métrica | Cenário A | Cenário B | Delta |
-|---------|-----------|-----------|-------|
-| HTTP 5xx % | 0.08% | 0.03% | **-62%** |
-| Timeouts % | 0.04% | 0.01% | **-75%** |
-
-### Custo
-
-| Componente | Cenário A | Cenário B | Delta |
-|------------|-----------|-----------|-------|
-| Compute (EC2/EKS) | $4200/mês | $4960/mês | **+18%** |
-| Storage (Loki/Tempo/Mimir) | $1800/mês | $2400/mês | **+33%** |
-| Egress (rede) | $400/mês | $480/mês | **+20%** |
-| **Total** | **$6400/mês** | **$7840/mês** | **+22.5%** |
-
-### Recursos
-
-| Métrica | Cenário A | Cenário B | Delta |
-|---------|-----------|-----------|-------|
-| CPU médio (app) | 61% | 48% | **-21%** |
-| CPU médio (DB) | 38% | 41% | **+8%** |
-| Memory médio | 54% | 52% | **-4%** |
+> A maioria dos endpoints tem taxa de sucesso similar (98-99%). A diferença mais expressiva está em \<endpoint específico\> (\<-Xpp\>).
 
 ---
 
-## Análise do delta
+## 4. Quantidade de Requests por Endpoint
 
-### Ganhos relevantes (Cenário B)
+Volume total por endpoint, com diferença absoluta + relativa.
 
-1. **Latência reduzida em ~42-51%** em todos os percentis. Atribuível a:
-   - Otimizações de path interno no Beyond v2.
-   - Cache de tracing melhorado (menos overhead de instrumentação).
-   - Instâncias m6i com clock mais alto que m5.
+| Endpoint | \<A\> Requests | \<B\> Requests | Diferença | Diferença (abs) |
+|----------|-----|-----|-----|-----|
+| `POST /send-sms` | ~13.000 | 13.013 | ~= | - |
+| `POST /verify-sms` | ~13.000 | 13.011 | ~= | - |
+| `GET /schedules` | ~5.450 | 4.608 | -15% | -842 |
+| `GET /schedules/surf` | ~5.350 | 4.379 | -18% | -971 |
+| `GET /cms/news` | ~5.350 | 4.379 | -18% | -971 |
+| `GET /inscriptions` | ~5.350 | 4.379 | -18% | -971 |
 
-2. **Error rate caiu ~62-75%.** Origem provável: novo retry interno no Beyond v2 mascara timeouts transientes que antes vazavam para o cliente.
-
-3. **Capacidade de pico +28%.** Cenário B comporta picos sem degradação visível em p95.
-
-### Custos relevantes (Cenário B)
-
-1. **+22.5% em custo total.** Compute +18%, storage +33% (mais sinais coletados), egress +20%.
-2. **CPU do DB +8%** — Beyond v2 aplica mais pressão no DB devido a paralelismo aumentado.
-
-### Onde A é equivalente ou melhor que B
-
-- Memória ligeiramente melhor em B (-4%) mas insignificante.
-- Não há métrica onde A supera B materialmente.
+> Interpretação típica: "\<A\> processou consistentemente mais requests porque VUs completam iterações mais rápido quando os tempos de resposta são menores."
 
 ---
 
-## Trade-offs identificados
+## 5. Tempos de Resposta por Etapa do Fluxo
 
-| Trade-off | Implicação |
-|-----------|------------|
-| Latência ↓ vs custo ↑ | Para casos com SLA de latência rigoroso, B compensa. Para casos com pressão de custo, A se sustenta. |
-| Coleta de sinais ↑ vs storage ↑ | B coleta 30% mais dados; storage segue. Pode-se reduzir retenção pra equilibrar. |
-| DB CPU ↑ no B | Pode exigir upgrade de instância DB no longo prazo. |
-
----
-
-## Recomendação
-
-> **Decisão recomendada.** Adotar Cenário B (Beyond v2) em produção.
-
-**Justificativa.**
-
-- Critério de decisão estabelecido era "p95 cair >30% E custo total não subir >25%".
-- Resultado: p95 caiu **-42%** (passa) e custo subiu **+22.5%** (passa).
-- Ambos critérios atendidos.
-
-**Plano de migração sugerido.**
-
-1. **Semana 1.** Migrar 10% do tráfego para Beyond v2 (canário).
-2. **Semana 2.** Monitorar; expandir para 50% se métricas seguirem o observado.
-3. **Semana 3-4.** Expandir para 100%; deprecar Cenário A.
-4. **Semana 5.** Revisar custo de DB; avaliar upgrade se CPU sustentar >50%.
-
-**Riscos da decisão.**
-
-- **Tráfego real de pico** pode comportar-se diferente do espelho. Mitigar com canário (passo 1).
-- **Custo de storage** pode escalar mais que o esperado se sinais novos forem retidos no padrão de 30d. Mitigar ajustando retenção.
-- **Beyond v2** ainda em release candidate (RC.3). Aguardar GA é uma opção mais conservadora.
+| Etapa | \<A\> p95 | \<A\> avg | \<B\> p95 | \<B\> avg | Delta p95 |
+|-------|------|------|------|------|------|
+| Login | 720 ms | 320 ms | 980 ms | 410 ms | +36% |
+| Home | 1100 ms | 480 ms | 1420 ms | 580 ms | +29% |
+| Surf Home | 2400 ms | 980 ms | 3100 ms | 1240 ms | +29% |
 
 ---
 
-## Anexos
+## 6. Endpoint Crítico: \<endpoint específico\>
 
-- Dashboards Grafana: `comparativo-beyond-v2-vs-hml-2026Q1`.
-- Logs do shadow proxy: bucket `s3://elven-loadtest-logs/2026/03/beyond-comparison/`.
-- Pyroscope snapshots para ambos cenários: `/tmp/pyroscope/2026-03-05/`.
-- Configurações exatas usadas: arquivos `helmfile.cenario-a.yaml` e `helmfile.cenario-b.yaml` no repo `<cliente>/infra-comparison`.
+Quando há um endpoint que concentra a maior parte da diferença, dedicar uma seção a ele.
+
+**Sintoma.** \<endpoint\> tem \<X\%\> sucesso em \<A\> vs \<Y\%\> em \<B\> (-\<Zpp\>).
+
+**Métricas detalhadas:**
+
+| Métrica | \<A\> | \<B\> | Delta |
+|---------|------|------|-------|
+| Total de chamadas | 5.420 | 4.379 | -19% |
+| Sucessos | 3.089 | 1.789 | -42% |
+| Falhas | 2.331 | 2.590 | +11% |
+| p95 latência | 4.2s | 8.7s | +107% |
+
+**Hipótese.** \<causa provável baseada em logs/profiling\>.
+
+**Evidência.** \<log line, query result, etc.\>
 
 ---
 
-## Glossário
+## 7. Conclusão
 
-- **Traffic shadowing** — técnica que copia requests reais e envia em paralelo a um ambiente alternativo, sem afetar resposta ao usuário.
-- **p95 / p99 / p99.9** — percentis de latência.
-- **Canário** — rollout gradual que envia uma fração pequena de tráfego para a versão nova.
-- **GA** — General Availability; release estável.
-- **RC** — Release Candidate; candidato a GA.
-- **Beyond v2** — versão next-gen da plataforma Elven Observability (referência depende do contexto do cliente).
+2-3 parágrafos fechando. Padrão:
+
+1. **Síntese do delta.** "\<A\> entregou desempenho superior em \<dimensões\>. \<B\> ficou atrás em \<dimensões\>."
+2. **Causa raiz do delta (se identificável).**
+3. **Recomendação.** Adotar \<A\>/\<B\>, ou continuar usando os dois com critério explícito. Próximo passo concreto.

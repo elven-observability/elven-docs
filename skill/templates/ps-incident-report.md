@@ -2,202 +2,188 @@
 title: Relatório de Incidente — <Cliente> — <YYYY-MM-DD>
 slug: <YYYYMMDD>-relatorio-incidente-<cliente>
 type: ps-incident-report
-audience: [cliente-stakeholder, cliente-eng, cliente-sre, eng-elven]
+audience: [cliente-eng, cliente-sre, cliente-stakeholder, eng-elven]
 incident_id: "INC-YYYY-NNNN"
 incident_date: "2026-MM-DD"
 client: "<nome-do-cliente>"
 severity: "<SEV1|SEV2|SEV3>"
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-12
 status: draft
 owner: ps@elven.works
 ---
 
-# Relatório de Incidente — <Cliente> — <Data>
+# <Título descritivo curto, ex: War Room — Análise de Lentidão> | <DD/MM/YYYY> ~HH h
 
-Relatório formal de incidente entregue pela Elven Works ao cliente como parte de Professional Services. Documenta linha do tempo, impacto, causa raiz, mitigação e plano de ação.
-
-> **Importante:** Este documento é confidencial e destina-se exclusivamente ao cliente identificado no frontmatter. Não compartilhar fora da cadeia de stakeholders autorizada.
+> Header de página é injetado pelo PDF render: `<Cliente> | Elven Works — Relatório de Incidente`.
 
 ---
 
 ## Sumário
 
-- [Sumário executivo](#sumário-executivo)
-- [Linha do tempo](#linha-do-tempo)
-- [Impacto](#impacto)
-- [Detecção](#detecção)
-- [Mitigação e recuperação](#mitigação-e-recuperação)
-- [Causa raiz](#causa-raiz)
-- [Análise dos 5 porquês](#análise-dos-5-porquês)
-- [Lições aprendidas](#lições-aprendidas)
-- [Plano de ação](#plano-de-ação)
-- [Glossário](#glossário)
+1. Informações da Sessão
+2. Timeline do Incidente
+3. Causa Raiz
+4. Queries — Loki / CloudWatch Logs Insights
+5. Recomendação
 
 ---
 
-## Sumário executivo
+## 1. Informações da Sessão
 
-3-5 parágrafos curtos cobrindo:
+Contexto técnico capturado para reprodução / investigação posterior. Tabela 2 colunas, sem TOC.
 
-1. **O que aconteceu** em 1 frase (ex: "Indisponibilidade do checkout entre 14h30 e 15h12 BRT em 02/03/2026").
-2. **Impacto principal** em métricas de negócio (perda estimada de receita, requests perdidas, % de usuários afetados).
-3. **Causa raiz resumida** (ex: "Saturação de conexões no pool do PostgreSQL após pico de tráfego não previsto").
-4. **Status atual** (resolvido / mitigado / em monitoramento).
-5. **Próximos passos críticos** com prazo.
+| Campo | Valor |
+|-------|-------|
+| Data/Hora | DD/MM/YYYY a partir das HH:MM BRT |
+| Usuário | <telefone, email ou ID — anonimize se necessário> |
+| Trace ID | `<trace-id-do-tempo>` |
+| Title ID / Member ID | `<IDs internos do cliente>` |
+| Ambiente | Produção (\<cluster\>) |
+| Log Group | `/aws/containerinsights/<cluster>/application` |
 
-> **Nota:** Esta seção é o que o stakeholder não-técnico vai ler. Seja preciso e quantificado. Sem jargão.
-
----
-
-## Linha do tempo
-
-Todos os horários em **BRT (UTC-3)**. Eventos em ordem cronológica.
-
-| Hora | Evento | Responsável | Fonte |
-|------|--------|-------------|-------|
-| 14:23 | Aumento anômalo de latência p99 (>3s) detectado pela Elven Observability | Sentinel (auto) | Grafana Tempo |
-| 14:30 | Início efetivo da indisponibilidade — checkout retorna 503 | (gatilho) | Status page |
-| 14:31 | Alerta SEV1 disparado para canal #incidents | Elven Incident | Slack |
-| 14:33 | On-call do cliente acknowledged | <nome> | OpsGenie |
-| 14:35 | War room aberto (Google Meet) | <nome> | — |
-| 14:42 | Hipótese 1 descartada (DNS) | <nome> | — |
-| 14:55 | Causa raiz identificada — pool DB saturado | <nome> | Grafana Mimir |
-| 15:01 | Mitigação aplicada — restart com pool size 200 | <nome> | kubectl |
-| 15:12 | Métricas voltam ao baseline | (auto-verificação) | Grafana Mimir |
-| 15:30 | War room encerrado | <nome> | — |
-| 16:00 | Postmortem iniciado | <nome> | Elven Incident |
+> **Importante:** Inclua trace ID, member/customer IDs e log group **literais** — esses campos são os ganchos pra reproduzir investigação. Se houver PII, mascarar (`***95585`).
 
 ---
 
-## Impacto
+## 2. Timeline do Incidente
 
-### Usuário final
+Cronológica, BRT, 1 evento por linha. Pode ser longa (10-50 linhas em incidentes maiores).
 
-- **Período de indisponibilidade total:** 14:30 – 15:12 (42 min).
-- **Período de degradação parcial:** 14:23 – 14:30 e 15:12 – 15:25 (latência acima de SLA).
-- **Usuários afetados:** ~<N> sessões ativas (estimativa baseada em Faro RUM).
-- **Requests perdidas:** <N> (HTTP 503/504 retornados).
+| Horário (BRT) | Evento |
+|---------------|--------|
+| 09:41:27 | Login iniciado — SMS enviado via Twilio (POST `v2/Services/.../Verifications`) |
+| 09:41:39 | SMS verificado (POST `v2/Services/.../VerificationCheck`) |
+| 09:41:39 | Token Firebase gerado (Title: 13288, Member: 13623) |
+| 09:41:45 | Usuário acessa tela de surf — início das chamadas ao MultiClubes |
+| 09:41:47 → 09:42:16 | MCAuthClient disparando POST `auth/phone` a cada ~300–400ms continuamente |
+| 10:00:24 | Primeiro `TaskCanceledException` — POST `auth/phone` começa a estourar timeout |
+| 10:00:24 → 10:29:26 | Cascata de falhas em todas as chamadas (ListInscriptions, GetVouchers, GetBenefits) |
 
-### Negócio
-
-| Métrica | Valor estimado | Fonte |
-|---------|----------------|-------|
-| Receita não realizada | R$ <X> | Estimativa baseada em conversion rate × tráfego médio do período |
-| Carrinhos abandonados | <N> | Faro session events |
-| Suporte (tickets abertos) | <N> | <ferramenta> |
-
-### Sistemas
-
-| Sistema | Estado durante incidente | Estado pós-incidente |
-|---------|--------------------------|----------------------|
-| Checkout API | Indisponível (503) | Operacional |
-| DB PostgreSQL | Saturado (connections exhausted) | Pool aumentado para 200 |
-| Loki / Tempo / Mimir | Operacionais durante todo o período | Operacionais |
+> Use `→` para intervalos. Cite endpoint/operação literal, não descrição genérica.
 
 ---
 
-## Detecção
+## 3. Causa Raiz
 
-### Como o incidente foi detectado
+### 3.1 <Sintoma técnico identificado em 1 frase>
 
-A Elven Observability detectou aumento de latência p99 às 14:23 via regra de alerta `checkout-api-p99-latency-high`. O alerta foi roteado para o canal #incidents do Slack do cliente em 14:31.
+Texto direto explicando o que aconteceu no nível de código/configuração. Cite arquivo/lib/componente envolvido.
 
-### Tempo de detecção (MTTD)
+```text
+exemplo de stack trace ou config relevante
+```
 
-**MTTD = 8 minutos** (entre 14:23 — primeira anomalia visível — e 14:31 — disparo do alerta).
+### 3.2 Volume / magnitude
 
-### Análise da detecção
+Quantifique. Tabela.
 
-> **Atenção:** O MTTD ficou dentro do SLA acordado (<10 min), mas o alerta poderia ter disparado mais cedo. Recomendação: avaliar regra de error rate (HTTP 5xx) com window de 1 min em vez de 5 min, o que detectaria 503s em ~30s.
+| Métrica | Valor |
+|---------|-------|
+| Total de chamadas \<componente\> na sessão | ~886 |
+| Intervalo entre chamadas | ~300–400ms |
+| Duração do período degradado | ~48 minutos (HH:MM → HH:MM BRT) |
 
----
+### 3.3 Endpoints / componentes afetados
 
-## Mitigação e recuperação
+| Rota | Controller / Componente |
+|------|-------------------------|
+| `GET /api/v1/schedules/surf/status` | `SchedulesSurfController.GetScheduleStatus` |
+| `GET /api/v1/schedules/surf/intervals` | `SchedulesSurfController.GetPackageIntervals` |
 
-### Ações tomadas
+### 3.4 Padrão de erro
 
-1. **14:42** — Hipótese DNS descartada via `nslookup` em pods diferentes.
-2. **14:50** — Hipótese de saturação de CPU descartada via `kubectl top pods`.
-3. **14:55** — Painel "PostgreSQL Connections" no Grafana Mimir mostrou pool em 100/100 (saturado).
-4. **15:01** — Aplicação de `kubectl patch` ajustando `connections.maxConnections: 200`.
-5. **15:08** — Rolling restart concluído.
-6. **15:12** — Métricas de latência e error rate voltaram ao baseline.
+Stack trace ou cadeia de exceção que se repete:
 
-### Tempo de mitigação (MTTR)
+```text
+TaskCanceledException: The operation was canceled.
 
-**MTTR = 41 minutos** (entre 14:31 — alerta — e 15:12 — recovery).
+→ ExternalServiceException: Error on communication with endpoint auth/phone
 
-### Tempo total (MTTF + MTTD + MTTR)
+→ RpcException: StatusCode="Cancelled", Detail="Call canceled by the client."
 
-**Indisponibilidade efetiva = 42 minutos** (entre 14:30 e 15:12).
+→ Unhandled exception: GetScheduleStatus / GetPackageIntervals
+```
 
----
+### 3.5 Conclusão
 
-## Causa raiz
+1-2 parágrafos diretos isolando a causa raiz lógica do diagnóstico técnico.
 
-Texto direto e quantificado.
-
-**Sintoma observado.** Checkout API retornou HTTP 503 entre 14:30 e 15:12.
-
-**Cadeia técnica.**
-
-1. Pico de tráfego não previsto no checkout (+220% acima da média do período) iniciou às 14:18.
-2. Pool de conexões PostgreSQL (`max_connections: 100`) saturou em 14:23.
-3. Novas requests ficaram aguardando conexão até timeout (5s), retornando 503.
-4. Sem auto-scaling de conexões configurado, situação se sustentou até intervenção manual.
-
-**Por que não houve auto-mitigação.** O serviço está atrás de HPA (Kubernetes), mas o HPA escala CPU/memory, não pool de DB. Adicionar instâncias de aplicação sem aumentar `max_connections` agravaria o problema.
-
-**Por que o pico não estava previsto.** Campanha de marketing ativada às 14:00 pelo time de growth do cliente sem sincronização com plataforma. Tráfego subiu 4x em 15 minutos.
+> **Padrão.** "O gargalo não é \<X\>. O problema é \<Y\> em \<componente\>." Termine com a relação causa→efeito explícita.
 
 ---
 
-## Análise dos 5 porquês
+## 4. Queries — Loki / CloudWatch Logs Insights
 
-1. **Por que houve indisponibilidade do checkout?** Porque o pool DB saturou e novas conexões caíram em timeout.
-2. **Por que o pool saturou?** Porque o tráfego excedeu a capacidade configurada (`max_connections: 100`).
-3. **Por que a configuração era 100?** Porque foi dimensionada em 2025 com base em tráfego médio + 50% de buffer, sem revisão após o crescimento de 2026.
-4. **Por que não havia revisão automática?** Porque não havia capacity planning recorrente para o componente DB.
-5. **Por que não havia capacity planning?** Porque a documentação operacional do checkout não previa pico sazonal/campanha; ownership do dimensionamento estava ambíguo.
+Queries verbatim que o cliente pode rodar para reproduzir / continuar investigação.
+
+### 4.1 <Todos os logs do número de telefone / customer>
+
+```text
+fields @timestamp, @message
+| filter @message like /+5511998955585/
+| sort @timestamp asc
+```
+
+### 4.2 <Todos os logs do trace ID>
+
+```text
+fields @timestamp, @message
+| filter @message like /87b2cb14-319a-4a1e-be8a-5e6bf9993e26/
+| sort @timestamp asc
+```
+
+### 4.3 Apenas erros e warnings do trace ID
+
+```text
+fields @timestamp, @message
+| filter @message like /87b2cb14/ and (@message like /Error/ or @message like /Warning/)
+| sort @timestamp asc
+```
+
+### 4.4 Contar chamadas \<componente\> (volume de autenticações)
+
+```text
+fields @timestamp, @message
+| filter @message like /MCAuthClient/
+| stats count() by bin(1m)
+```
+
+### 4.5 Apenas erros de timeout
+
+```text
+fields @timestamp, @message
+| filter @message like /TaskCanceledException/
+| sort @timestamp asc
+```
+
+### 4.6 Visão geral — erros por minuto no período
+
+```text
+fields @timestamp, @message
+| filter @message like /Error/
+| stats count() as erros by bin(1m)
+| sort @timestamp asc
+```
+
+> **Nota.** As queries acima são CloudWatch Logs Insights. Para Loki (Elven Observability), traduza usando `{namespace="<cluster>"} |~ "<pattern>"`. Mantenha as queries reais; não generalize com `<placeholder>`.
 
 ---
 
-## Lições aprendidas
+## 5. Recomendação
 
-### O que funcionou bem
+Texto direto sem cerimônia. 1-3 parágrafos. Sem tabela de plano de ação formal a menos que faça sentido.
 
-- Detecção pela Elven Observability dentro do SLA (8 min).
-- War room aberto rapidamente; comunicação fluiu no Slack.
-- Mitigação direta e correta após causa raiz identificada.
+Padrão observado nos relatórios reais:
 
-### O que pode melhorar
+- **Problema raiz é \<X\>.**
+- **Próximo passo concreto:** \<ação técnica específica, ex: implementar cache de token no MCAuthClient com TTL de 5 min e refresh assíncrono\>.
+- **Esforço estimado:** \<P0/P1/P2 ou prazo em dias\>.
+- **Validação proposta:** \<como medir que melhorou — ex: re-rodar mesma sessão e verificar que `MCAuthClient` cai de 886 para <10 chamadas\>.
 
-- **Detecção poderia ter sido mais rápida** com regra de error rate em janela menor.
-- **Capacity planning ausente** para DB — não existia procedimento recorrente.
-- **Comunicação com marketing** falhou — campanhas grandes não passam por revisão de capacidade.
+Se houver mais de 1 recomendação:
 
----
-
-## Plano de ação
-
-| # | Ação | Responsável | Prazo | Status |
-|---|------|-------------|-------|--------|
-| 1 | Aumentar `max_connections` PostgreSQL para 200 em produção | <time> | 02/03/2026 | ✓ feito |
-| 2 | Implementar PgBouncer como connection pooler na frente do DB | <time> | 30/03/2026 | pendente |
-| 3 | Criar regra de alerta `db-pool-saturation` (≥80% por 2 min) | Elven | 09/03/2026 | em curso |
-| 4 | Reduzir janela de regra `checkout-api-error-rate` de 5 min para 1 min | Elven | 09/03/2026 | em curso |
-| 5 | Documentar procedimento de capacity planning trimestral | <time> | 30/04/2026 | pendente |
-| 6 | Implementar canal Slack `#capacity-planning` para campanhas marketing | <time cliente> | 16/03/2026 | pendente |
-
-> **Nota:** Status atualizado em cada revisão deste relatório. Próxima revisão: 16/03/2026.
-
----
-
-## Glossário
-
-- **MTTD** — Mean Time To Detect; tempo entre o início real do incidente e o disparo do alerta.
-- **MTTR** — Mean Time To Recovery; tempo entre o disparo do alerta e o retorno do serviço ao baseline.
-- **SEV1** — Severidade 1; incidente de impacto crítico que afeta produção e exige resposta imediata.
-- **Pool de conexões DB** — conjunto pré-alocado de conexões com o banco; bem dimensionado evita custos de handshake.
-- **HPA** — Horizontal Pod Autoscaler; mecanismo Kubernetes que escala número de pods baseado em métricas.
-- **Sentinel** — agente automatizado da Elven Observability que correlaciona sinais e dispara investigações.
+| # | Ação | Prioridade | Esforço |
+|---|------|-----------|---------|
+| 1 | <ação técnica> | P0 | Baixo |
+| 2 | <ação> | P1 | Médio |
+| 3 | <ação> | P2 | Alto |

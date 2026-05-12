@@ -1,196 +1,186 @@
 ---
-title: Relatório de Spike — <Cliente> — <YYYY-MM-DD HH:MM BRT>
+title: Relatório de Monitoramento — Spike de Produção — <Cliente> — <YYYY-MM-DD>
 slug: <YYYYMMDD>-relatorio-spike-<cliente>
 type: ps-spike-report
-audience: [cliente-stakeholder, cliente-eng, cliente-sre, eng-elven]
+audience: [cliente-eng, cliente-sre, cliente-stakeholder, eng-elven]
 spike_date: "2026-MM-DD"
 spike_window_brt: "HH:MM – HH:MM"
 client: "<nome-do-cliente>"
 severity_estimated: "<informativo|alerta|incidente>"
-last_reviewed: 2026-05-08
+last_reviewed: 2026-05-12
 status: draft
 owner: ps@elven.works
 ---
 
-# Relatório de Spike — <Cliente> — <Data e janela>
+# Relatório de Monitoramento — Spike de Produção
 
-Relatório formal entregue pela Elven Works analisando um **spike** (pico anômalo de métrica) detectado em produção. Documenta a janela observada, métricas afetadas, hipóteses, análise e recomendações.
+\<Cliente The Club\> — \<evento gatilho do spike\>
+Data: \<DD de mês de YYYY\> | Horário do Pico: \<HH:MM\> BRT
 
-> **Nota:** Spike report difere de incident report em escopo. Spike pode ser informativo (não houve incidente) e ainda assim merece análise. Quando spike vira incidente, este doc é ponto de partida para [ps-incident-report](./ps-incident-report.md).
+> Header de página: `<Cliente> | Elven Works — Relatório de Monitoramento`.
 
 ---
 
 ## Sumário
 
-- [Sumário executivo](#sumário-executivo)
-- [Janela observada](#janela-observada)
-- [Métricas afetadas](#métricas-afetadas)
-- [Linha do tempo curta](#linha-do-tempo-curta)
-- [Hipóteses levantadas](#hipóteses-levantadas)
-- [Análise das hipóteses](#análise-das-hipóteses)
-- [Conclusão](#conclusão)
-- [Recomendações](#recomendações)
-- [Anexos](#anexos)
-- [Glossário](#glossário)
+1. Resumo Executivo
+2. Preparação Realizada Antes do Pico
+3. Cronologia do Spike
+4. Métricas Detalhadas
+5. Análise de Gargalos
+6. Comportamento do HPA
+7. Recomendações (Priorização)
+8. Conclusão
 
 ---
 
-## Sumário executivo
+## 1. Resumo Executivo
 
-3-4 parágrafos:
+1-2 parágrafos. Padrão:
 
-1. **O que aconteceu** em 1 frase (ex: "Pico de latência p99 de 6s observado em checkout-api entre 11/03/2026 14:18 e 14:23 BRT — duração de 5 minutos").
-2. **Impacto observado** (houve / não houve usuários afetados; magnitude).
-3. **Causa raiz identificada / hipótese mais provável.**
-4. **Recomendação principal** (com prazo).
+Este relatório documenta o monitoramento em tempo real do cluster \<X\> de produção durante o spike de acessos causado por \<evento gatilho\> às \<HH:MM\> BRT do dia \<DD/MM/YYYY\>. O monitoramento cobriu o período de \<HH:MM\> a \<HH:MM\> BRT, com coletas a cada \<intervalo\>.
 
----
-
-## Janela observada
-
-| Aspecto | Valor |
-|---------|-------|
-| Data | 11/03/2026 |
-| Início (BRT) | 14:18 |
-| Fim (BRT) | 14:23 |
-| Duração | 5 min |
-| Fuso | UTC-3 |
-
-### Como o spike foi detectado
-
-- **Detector primário.** Sentinel correlacionou aumento de latência + aumento de error rate.
-- **Alerta disparado?** Sim / Não (justificar).
-- **Reportado pelo cliente?** Sim / Não (justificar).
+**RESULTADO:** \<frase headline 1-linha sobre o desfecho. Padrão observado: "A infraestrutura absorveu o spike com sucesso. Apenas N erros transitórios foram registrados durante o scale-up do HPA. Zero indisponibilidade para o usuário final."\>
 
 ---
 
-## Métricas afetadas
+## 2. Preparação Realizada Antes do Pico
 
-### Métrica principal
+### 2.1 Escalamento Preventivo
 
-| Métrica | Baseline (24h prior) | Pico | Delta |
-|---------|----------------------|------|-------|
-| Latência p99 checkout-api | 1100 ms | 6200 ms | **+463%** |
+| Componente | Antes | Depois | Observação |
+|------------|-------|--------|------------|
+| \<App\> (pods) | 1 réplica | 3 réplicas | HPA min=3, max=6 |
+| \<Backend\> (pods) | 1 réplica | 3 réplicas | HPA min=3, max=6 |
+| \<Outro componente\> (pods) | 1 réplica | 3 réplicas | Sem HPA |
+| Nginx Ingress (pods) | 1 réplica | 3 réplicas | Sem HPA |
+| Redis (ElastiCache) | `cache.t3.micro` | `cache.m6g.large` | Zero downtime (blue-green) |
+| Nodes EKS | 5 | 8 (pré) → 11 (pico) | Cluster Autoscaler ativo, ASG max=15 |
 
-### Métricas correlacionadas no mesmo período
+### 2.2 Correções Aplicadas
 
-| Métrica | Baseline | Pico | Delta |
-|---------|----------|------|-------|
-| Error rate (5xx) | 0.04% | 1.20% | **+30x** |
-| Active DB connections | 84/200 | 162/200 | +93% |
-| CPU médio (app) | 56% | 72% | +29% |
-| Memory médio (app) | 54% | 56% | +4% |
-| Disk I/O (DB) | 320 IOPS | 1180 IOPS | +268% |
-| Network egress (app→DB) | 12 MB/s | 38 MB/s | +217% |
-
-### Métricas que NÃO se moveram
-
-| Métrica | Comportamento |
-|---------|---------------|
-| Tráfego de entrada (RPS) | Estável; sem pico correlacionado |
-| Latência de upstream pagamentos | Estável |
-| Saturação de Redis | Estável |
-
-> **Importante:** RPS estável + latência subindo é assinatura típica de **degradação do lado downstream** (DB, dependência interna), não de excesso de carga.
+- `SecretProviderClass redis-secrets-prod` criado (estava ausente, bloqueava deploy).
+- Security Group do ElastiCache corrigido (node SG não tinha acesso à porta 6379).
+- Resource requests adicionados ao `<componente>` (`cpu=250m`, `memory=256Mi`).
 
 ---
 
-## Linha do tempo curta
+## 3. Cronologia do Spike
 
-| Hora (BRT) | Evento | Fonte |
-|------------|--------|-------|
-| 14:18:12 | p99 cruza 2000 ms (primeira anomalia) | Grafana Tempo |
-| 14:18:45 | Sentinel inicia investigação automática | Sentinel |
-| 14:20:02 | p99 atinge pico de 6200 ms | Grafana Tempo |
-| 14:20:30 | Error rate cruza 1% | Grafana Mimir |
-| 14:22:00 | Métricas começam a retornar ao baseline | (auto-recuperação) |
-| 14:23:18 | p99 volta abaixo de 1500 ms | Grafana Tempo |
-| 14:25:00 | Sentinel encerra investigação como "resolved naturally" | Sentinel |
+Tabela ampla com horário, evento, métricas-chave, erros. Cada linha = 1 minuto ou 1 evento relevante.
 
----
-
-## Hipóteses levantadas
-
-Lista todas as hipóteses consideradas no momento da análise. Marca cada uma como confirmada, descartada ou não conclusiva.
-
-| # | Hipótese | Status |
-|---|----------|--------|
-| H1 | Pico de carga (mais RPS) | **Descartada** — RPS ficou estável |
-| H2 | Bug de aplicação introduzido em deploy recente | **Descartada** — último deploy 36h antes do spike |
-| H3 | Query DB problemática (lock, full table scan transiente) | **Confirmada** — query lenta detectada nos logs DB |
-| H4 | Saturação de Redis | **Descartada** — Redis estável |
-| H5 | Problema de rede entre app e DB | **Inconclusiva** — sem evidência forte, mas latência de conexão DB subiu |
+| Horário (BRT) | Evento | \<App\> CPU (HPA) | \<Backend\> CPU (HPA) | Nodes | Erros |
+|---------------|--------|----------|------------|-------|-------|
+| 13:41 | Baseline (pré-pico) | 2% | 0% | 10 | 0 |
+| 13:45 | Tráfego começa a subir | 3% | 1% | 9 | 0 |
+| 13:50 | Crescimento gradual | 4% | 1% | 9 | 0 |
+| 13:55 | Aceleração | 6% | 1% | 9 | 0 |
+| 13:57 | Ramp-up significativo | 9% | 2% | 9 | 0 |
+| 13:58 | Carga intensa | 20% | 4% | 9 | 0 |
+| 13:59 | Pré-pico | 39% | 8% | 9 | 0 |
+| **14:00** | **PICO — HPA \<App\> atinge 122%** | **122%** | 23% | 9 | 0 |
+| 14:01 | HPA escala \<App\> 3→6, 2 nodes provisionando | 94% | 15% | 11 | 1 |
+| 14:02 | Novos pods absorvendo carga | 89% | 19% | 11 | 0 |
+| 14:03 | Estabilizando com 6 réplicas | 55% | 14% | 11 | 0 |
+| 14:04 | Carga distribuída | 37% | 13% | 11 | 0 |
+| 14:05 | Normalizando | 30% | 12% | 11 | 0 |
+| 14:07 | Pós-pico | 22% | 10% | 11 | 0 |
+| 14:09 | HPA começa a desescalar \<App\> 6→3 | 29% | 6% | 11 | 0 |
 
 ---
 
-## Análise das hipóteses
+## 4. Métricas Detalhadas
 
-### H3 — Query DB problemática (confirmada)
+### 4.1 CPU por Pod — \<App\> (gargalo principal)
 
-**Evidência.**
+Comentário curto: "O \<App\> é o componente que mais consome CPU. Sem limite de CPU definido (burstable), os pods conseguiram usar mais de 1000m cada durante o pico, o que é positivo pois evitou throttling."
 
-- Log de slow query no PostgreSQL às 14:18:32:
+| Pod | Idle (13:41) | Pré-pico (13:58) | Pico (14:00) | Pós-escala (14:04) | Pós-pico (14:08) |
+|-----|--------------|------------------|--------------|--------------------|--------------------|
+| `<app>-2tzlm` | 47m | 216m | 1367m | 286m | 168m |
+| `<app>-cg4np` | 15m | 209m | 1337m | 322m | 216m |
+| `<app>-wl44j` | 7m | 197m | 1331m | 325m | 190m |
+| `<app>-hr2q5` (novo) | - | - | - | 319m | 204m |
+| `<app>-kf7wn` (novo) | - | - | - | 588m | 192m |
+| `<app>-tkfmh` (novo) | - | - | - | 382m | - |
+| **TOTAL** | **69m** | **622m** | **4035m** | **2222m** | **970m** |
 
-```text
-duration: 4823.117 ms  statement: SELECT * FROM orders WHERE customer_id = ?
-  AND created_at > NOW() - INTERVAL '30 days' ORDER BY created_at DESC
-```
+### 4.2 CPU por Pod — \<Backend\>
 
-- A query foi disparada por uma campanha de email-blast do cliente, que abriu múltiplas sessões simultâneas; cada sessão carregou "Minhas compras dos últimos 30 dias".
+(Mesma tabela, formato idêntico, para outros componentes relevantes.)
 
-**Causa raiz inferida.**
+### 4.3 Memória — \<App\> (crescimento durante pico)
 
-- Tabela `orders` cresceu 4x nos últimos 6 meses sem revisão de índices.
-- Query usa `ORDER BY created_at DESC` mas índice composto não foi criado para `(customer_id, created_at)`.
-- Para customers com histórico longo, query degrada para full scan parcial.
+Tabela similar mostrando memória por pod ao longo da janela.
 
-**Por que se auto-resolveu.**
+### 4.4 Nodes — Saturação durante o Pico
 
-- Email-blast terminou de processar; sessões simultâneas caíram naturalmente.
-- Cache de aplicação (Redis com TTL 5 min) começou a hidratar resultados frequentes.
-
-### H5 — Rede (inconclusiva)
-
-Aumento de network egress correlaciona com aumento de transfer de payload das queries lentas (mais linhas retornadas). Provavelmente efeito, não causa.
-
----
-
-## Conclusão
-
-**O que aconteceu.** Email-blast disparado pelo cliente às 14:15 abriu múltiplas sessões simultâneas que dispararam uma query degradada (`SELECT * FROM orders` sem índice composto). A query saturou IOPS do DB, aumentou latência da aplicação, e gerou 5 minutos de degradação até a campanha terminar.
-
-**Houve incidente?** No limite. Error rate cruzou 1% por ~2 minutos. Alguns usuários viram timeout. Não foi declarado incidente formal porque resolveu sozinho antes do MTTD habitual; mas é um quase-acidente que merece tratamento.
-
-**Causa raiz.** Índice composto faltando em `orders(customer_id, created_at)` + comunicação ausente entre time de growth e time de plataforma sobre janelas de campanha.
+| Node | Tipo | CPU médio | CPU pico | Memory pico |
+|------|------|-----------|----------|-------------|
+| `ip-10-0-1-x` | t3.large | 45% | 78% | 62% |
+| `ip-10-0-1-y` | t3.large | 38% | 71% | 58% |
+| ... | ... | ... | ... | ... |
 
 ---
 
-## Recomendações
+## 5. Análise de Gargalos
 
-| # | Recomendação | Prazo | Owner sugerido |
-|---|--------------|-------|----------------|
-| 1 | Criar índice composto `idx_orders_customer_created` em `orders(customer_id, created_at DESC)` | 7 dias | time DBA cliente |
-| 2 | Adicionar regra de alerta `slow-query-detected` (query duration >2s) no Elven Observability | 14 dias | Elven |
-| 3 | Estabelecer canal `#capacity-planning` entre growth e plataforma para campanhas grandes | 21 dias | time cliente |
-| 4 | Revisar TTL do cache de "Minhas compras" — atualmente 5 min, pode ser 15-30 min | 30 dias | time backend cliente |
-| 5 | Auditar outras queries em tabelas com crescimento recente (>2x em 6 meses) | 60 dias | time DBA cliente + Elven |
+### 5.1 Gargalo #1: \<componente\> — \<dimensão\> (\<CRÍTICO|MÉDIO|BAIXO\>)
+
+**Observação.** Texto direto: o que foi observado, com número.
+
+**Causa.** Cadeia técnica explicando o porquê.
+
+**Evidência.** Cite painel Grafana, query Prometheus, log line.
+
+### 5.2 Gargalo #2: Cluster Autoscaler — Latência de Provisioning (MÉDIO)
+
+Padrão similar.
+
+### 5.3 Gargalo #3: Nodes com CPU limitada (MÉDIO)
+
+Padrão similar.
+
+### 5.4 Gargalo #4: \<componente\> (BAIXO)
+
+Padrão similar.
+
+### 5.5 Não-Gargalo: \<componentes que se saíram bem\>
+
+Importante registrar o que NÃO foi problema — evita future debugging duplicado.
 
 ---
 
-## Anexos
+## 6. Comportamento do HPA
 
-- Snapshot do dashboard "Checkout API Latency": `<URL Grafana>`.
-- Slow query log do PostgreSQL: bucket `s3://elven-customer-logs/2026/03/11/postgres-slow-query/`.
-- Pyroscope CPU profile da aplicação durante a janela: `/tmp/pyroscope/2026-03-11/14h.pb.gz`.
-- Captura de campanha de marketing que disparou: print do Mailchimp anexado.
+Tabela ou prosa explicando como o HPA reagiu, tempo de reação, oscilações observadas.
+
+| Componente | Trigger threshold | Reação observada | Tempo de scale | Tempo de stabilização |
+|------------|-------------------|------------------|----------------|------------------------|
+| \<App\> | CPU >80% | Escala 3→6 em 14:01 | ~60s | ~3 min |
+| \<Backend\> | CPU >70% | Não escalou (CPU max 23%) | n/a | n/a |
 
 ---
 
-## Glossário
+## 7. Recomendações (Priorização)
 
-- **Spike** — pico anômalo e curto de métrica que pode ou não evoluir para incidente.
-- **MTTD** — Mean Time To Detect.
-- **Slow query log** — log do PostgreSQL que registra queries acima de um threshold de duração.
-- **Sentinel** — agente automatizado da Elven Observability que correlaciona sinais e dispara investigações.
-- **Email-blast** — disparo em massa de email de marketing que pode causar tráfego sincronizado.
-- **IOPS** — Input/Output Operations Per Second; saturação típica em disco RDS.
+| # | Ação | Impacto | Esforço | Prioridade |
+|---|------|---------|---------|------------|
+| 1 | Aumentar HPA `minReplicas` para 4-5 | Alto: reduz saturação no pico | Baixo | **P0** |
+| 2 | Aumentar HPA `maxReplicas` \<App\> de 6 para 10 | Alto: permite escalar mais | Baixo | **P0** |
+| 3 | Implementar circuit breaker na \<dependência\> | Alto: evita 500 se Redis cair | Médio | **P1** |
+| 4 | Migrar para nodes m6i.xlarge (4 vCPU) | Médio: melhor densidade e burst | Médio | **P1** |
+| 5 | Avaliar Karpenter em vez de Cluster Autoscaler | Médio: provisioning 2x mais rápido | Alto | **P2** |
+| 6 | Adicionar PodDisruptionBudget nos \<componentes críticos\> | Baixo: proteção contra evictions | Baixo | **P2** |
+| 7 | Configurar `topologySpreadConstraints` | Baixo: distribuição entre AZs | Baixo | **P2** |
+| 8 | Monitorar ElastiCache via dashboard Elven | Baixo: visibilidade | Baixo | **P3** |
+
+---
+
+## 8. Conclusão
+
+1-2 parágrafos fechando. Padrão:
+
+- O spike foi absorvido com \<resultado\>.
+- Os \<N\> gargalos identificados têm mitigação clara via recomendações P0/P1.
+- Próximo spike previsto: \<data ou condição\>. Re-monitorar após aplicar P0+P1.
