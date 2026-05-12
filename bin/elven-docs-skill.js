@@ -6,9 +6,11 @@
  *   install [--force]            Copia skill/* para ~/.claude/skills/elven-docs-skill/
  *   update                       Idem install, com prompt antes de sobrescrever
  *   lint <arquivo>               Roda skill/scripts/lint.sh contra um arquivo
+ *   check <arquivo>              Roda cross-section-check.sh — report de claims numéricas
  *   backfill <arquivo..>         Roda skill/scripts/backfill-frontmatter.sh
  *   pdf <arquivo.md> [opts]      Renderiza markdown → PDF temado via Puppeteer
- *                                opts: --out <file.pdf>, --theme <client|internal>
+ *                                opts: --out <file.pdf>, --theme <client|internal>,
+ *                                      --mermaid <cdn|bundle>
  *   --version, -v                Imprime versão do package
  *   --help, -h                   Imprime esta ajuda
  */
@@ -50,14 +52,22 @@ Uso:
       Roda skill/scripts/lint.sh contra os arquivos passados.
       Exit 0 = todos passam; exit 1 = pelo menos 1 falha.
 
+  elven-docs-skill check <arquivo.md> [<arquivo.md>...]
+      Roda cross-section-check.sh — report de claims numéricas que aparecem
+      em múltiplas seções (MTTD/MTTR, VUs, throughput, error rate, etc.).
+      Sempre exit 0; é report, não gate. Ajuda quality-gate 6.3
+      ("numbers must match across sections").
+
   elven-docs-skill backfill <arquivo.md> [<arquivo.md>...]
       Roda skill/scripts/backfill-frontmatter.sh — adiciona frontmatter
       derivado a docs legados. Edita os arquivos in-place.
 
-  elven-docs-skill pdf <arquivo.md> [--out <out.pdf>] [--theme <client|internal>]
+  elven-docs-skill pdf <arquivo.md> [--out <out.pdf>] [--theme <client|internal>] [--mermaid <cdn|bundle>]
       Renderiza markdown → HTML temado Elven → PDF via Puppeteer.
       Theme default é 'client' quando type=ps-*, senão 'internal'.
       Saída default é <arquivo>.pdf ao lado do .md.
+      --mermaid bundle usa mermaid local (~3MB, offline-safe); default é cdn.
+      ENV: ELVEN_MERMAID_MODE=bundle aplica como default global.
 
   elven-docs-skill --version, -v
       Imprime ${PACKAGE_JSON.version}.
@@ -160,6 +170,16 @@ function backfill(files) {
   process.exit(result.status ?? 1);
 }
 
+function check(files) {
+  if (files.length === 0) {
+    err("Uso: elven-docs-skill check <arquivo.md> [<arquivo.md>...]");
+    process.exit(2);
+  }
+  const script = path.join(PACKAGE_ROOT, "skill", "scripts", "cross-section-check.sh");
+  const result = spawnSync("bash", [script, ...files], { stdio: "inherit" });
+  process.exit(result.status ?? 0);
+}
+
 function pdf(args) {
   if (args.length === 0) {
     err("Uso: elven-docs-skill pdf <arquivo.md> [--out <out.pdf>] [--theme <client|internal>]");
@@ -205,6 +225,10 @@ function main() {
 
     case "backfill":
       backfill(args.slice(1));
+      break;
+
+    case "check":
+      check(args.slice(1));
       break;
 
     case "pdf":

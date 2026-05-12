@@ -2,7 +2,7 @@
 
 Anthropic skill-creator pack que codifica o **padrão de documentação técnica e PS reports da Elven Works**. Distribuído via npm com instalação one-shot. Renderiza markdown → PDF temado Elven via Puppeteer.
 
-> **Status:** v0.2.0. Cobre 9 templates canônicos: 5 docs técnicos (instrumentação, instalação, SDK frontend, PDtec) + 4 PS reports (incidente, teste de carga, comparativo, spike). Geração de PDF integrada.
+> **Status:** v0.4.0. Cobre 9 templates canônicos: 5 docs técnicos (instrumentação, instalação, SDK frontend, PDtec) + 4 PS reports (incidente, teste de carga, comparativo, spike). PS templates **validados contra os 7 PDFs reais** entregues a cliente Beyond. Geração de PDF integrada com tema Elven, Mermaid (CDN ou bundle offline) e resolver de imagens locais. Cross-section check para claims numéricas.
 
 ---
 
@@ -114,6 +114,9 @@ elven-docs-skill pdf docs/ps/20260302-relatorio-incidente-beyond.md
 # Forçar tema
 elven-docs-skill pdf docs/instrumentacao-java.md --theme internal --out /tmp/java.pdf
 
+# Mermaid offline (bundle local — ~3 MB)
+elven-docs-skill pdf relatorio.md --mermaid bundle
+
 # Theme 'client' inclui:
 # - capa com título, cliente, data, severidade, owner
 # - header com título do doc
@@ -121,6 +124,14 @@ elven-docs-skill pdf docs/instrumentacao-java.md --theme internal --out /tmp/jav
 # - margens A4 generosas
 # - cores Elven (texto #0d1530 sobre branco; accent #c95b29)
 ```
+
+### Cross-section check (report de claims numéricas)
+
+```bash
+elven-docs-skill check docs/ps/relatorio.md
+```
+
+Sai sempre exit 0. Sinaliza ⚠ quando o mesmo tipo de métrica (MTTD, VUs, throughput, error rate) aparece com valores distintos em seções diferentes — útil pra cumprir quality-gate 6.3 ("numbers must match across sections") antes de entregar ao cliente.
 
 ---
 

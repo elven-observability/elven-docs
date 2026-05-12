@@ -4,6 +4,8 @@ O que cada artefato gerado pelo skill **promete entregar**. Inspirado em `artifa
 
 Use este doc para responder a pergunta: "esse `.md` está pronto?" — comparando o que ele tem com o que o contrato exige.
 
+> **Atualização v0.4.0.** PS templates agora espelham os 7 PDFs reais de cliente Beyond (validados via pdftotext). Numeração decimal embarcada nos headings, Sumário estático, persona técnica primária. Ver `style-guide.md` para drift entre v0.2.0 (inventado) e v0.3.0+ (espelhado).
+
 ---
 
 ## Sumário
@@ -132,25 +134,35 @@ Se você produziu o `.md` e ele "passa no lint" mas não tem referências cruzad
 
 ### `ps-incident-report`
 
-**Objetivo.** Cliente stakeholder/SRE recebe relatório formal de incidente que:
+**Objetivo.** Cliente eng/SRE técnico recebe relatório formal de incidente que:
 
-- explica o que aconteceu em linguagem clara no Sumário Executivo,
+- contextualiza a sessão com IDs reproduzíveis (trace, member, log group),
 - detalha linha do tempo precisa (BRT),
-- quantifica impacto (negócio, sistemas, usuários),
-- explica causa raiz e análise dos 5 porquês,
-- entrega plano de ação com responsável e prazo.
+- explica causa raiz com subseções numeradas (3.1 sintoma técnico, 3.2 volume, 3.3 endpoints afetados, 3.4 padrão de erro, 3.5 conclusão),
+- entrega queries reproduzíveis (CloudWatch Logs Insights / Loki) que o cliente pode rodar sozinho,
+- termina com Recomendação técnica direta.
+
+Stakeholder lê apenas a Recomendação (seção 5); eng/SRE consomem 1-4.
 
 **Deve conter.**
 
 - Frontmatter com `incident_id`, `incident_date`, `client`, `severity`.
-- Sumário Executivo de 3-5 parágrafos (sem jargão).
-- Tabela de linha do tempo com colunas Hora/Evento/Responsável/Fonte.
-- Métricas quantificadas no Impacto (R$, % usuários, requests).
-- MTTD e MTTR explícitos.
-- Plano de ação como tabela com status.
-- Glossário.
+- H1 descritivo curto ("War Room — Análise de Lentidão | DD/MM/YYYY ~HHh").
+- Sumário como lista numerada estática (1. Informações da Sessão …).
+- `## 1. Informações da Sessão` com tabela: Data/Hora, Usuário, Trace ID, Title/Member ID, Ambiente, Log Group.
+- `## 2. Timeline do Incidente` cronológica BRT.
+- `## 3. Causa Raiz` com 3.1 → 3.5 numerados.
+- `## 4. Queries` com 6+ queries reproduzíveis em blocos `text`.
+- `## 5. Recomendação` direta, sem cerimônia.
 
-**Deve gerar PDF temado `client`** com capa e header/footer.
+**NÃO deve conter** (verificado contra 7 PDFs reais):
+
+- Sumário Executivo formal para stakeholder.
+- Análise dos 5 porquês.
+- Plano de Ação como tabela com responsáveis + prazos.
+- Glossário no fim.
+
+**Deve gerar PDF temado `client`** com capa Elven Works · Professional Services, header com título, footer com cliente + paginação.
 
 ---
 
@@ -217,7 +229,9 @@ Quando um destes muda no doc, **conferir os outros**:
 - prazos
 - endpoint/URL
 
-Se o Sumário Executivo diz "MTTR = 41 min" e a seção de Mitigação diz "MTTR = 42 min", o doc não está pronto. Numbers must match across sections.
+Se o Resumo Executivo diz "MTTR = 41 min" e a seção de Mitigação diz "MTTR = 42 min", o doc não está pronto. Numbers must match across sections.
+
+**Ferramenta v0.4.0+.** Rode `elven-docs-skill check <arquivo.md>` para report de claims numéricas (MTTD/MTTR, VUs, throughput, error rate, etc.). Inconsistências (⚠) exigem revisão humana antes de entregar.
 
 ---
 

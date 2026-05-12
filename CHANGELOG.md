@@ -6,6 +6,53 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e es
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-12
+
+### Added
+
+- **Mermaid offline (opt-in).** Flag `--mermaid bundle` injeta `mermaid@11` local (~3 MB do `node_modules`) inline no HTML. Default segue CDN jsdelivr (rápido, leve). ENV `ELVEN_MERMAID_MODE=bundle` aplica como default. Útil em CI sem internet ou em ambientes com restrição outbound.
+- **Cross-section check** (`skill/scripts/cross-section-check.sh` + CLI `elven-docs-skill check`). Report (não gate) de claims numéricas duplicadas:
+  - MTTD / MTTR (min / s)
+  - VUs (max/sustentado)
+  - Throughput (req/s, RPS)
+  - Error rate (%)
+  - Pool de conexões
+  - Total de requests
+  - p95 / p99 latência
+  - Total de chamadas
+  Exit sempre 0. ⚠ flag indica drift potencial; ✓ confirma consistência. Ajuda quality-gate 6.3 ("numbers must match across sections").
+- **Subcomando `check`** no CLI bin com forwarding pra script shell.
+- **Exemplo vivo** `skill/examples/demo-ps-incident-report.md` — dados anonimizados (TestCo) com estrutura espelhando 1:1 o PDF real Beyond `20260302-relatorio-incidente.pdf`. Render gera PDF de 6 páginas com headings idênticos ao real (validado via pdftotext diff). Serve como referência viva pra autores de PS reports.
+- **`skill/examples/README.md`** com convenção de anonimização, lista de exemplos planejados, e instruções de comparação com PDF real.
+- **CSS `.mermaid`** ajustado nos 2 temas (centralização, max-width, page-break-inside).
+- **Dep:** `mermaid@^11.15.0` (3.2 MB minified) — apenas usada em `--mermaid bundle`. CDN segue como default leve.
+
+### Changed
+
+- **render-pdf.js** refatorado:
+  - Aceita `--mermaid <cdn|bundle>` (default `cdn`).
+  - Init Mermaid agora é `mermaid.run().then(...).catch(...)` — libera `__mermaidReady__` mesmo em erro de render, evitando timeout pendurar PDF.
+  - Bundle mode lê `mermaid/dist/mermaid.min.js` via `require.resolve` — funciona após `npm install`.
+- **`render-pdf.test.sh`** agora valida bundle mode também (4 PDFs renderizados, era 3).
+- **`artifact-contract.md`** atualizado pra refletir v0.3.0+ (templates espelhando realidade Beyond) + referência a `elven-docs-skill check` na regra de coerência cruzada.
+
+### Validated end-to-end
+
+- Demo `demo-ps-incident-report.md` (TestCo, sintético) → renderização pelo skill → comparado via `pdftotext -layout` com PDF real Beyond. **Headings 1:1 idênticos** (5 seções numeradas, 6 páginas). Estrutura do template valida contra realidade entregue ao cliente.
+- Cross-section-check rodado contra texto real do `20260306-relatorio-teste-carga-beyond.pdf`: detectou ⚠ Throughput 157 req/s vs 32 req/s (real diff entre testes). Zero false positives nos templates esqueleto + fixtures + demo.
+
+### Fixed
+
+- **Lint item 1 flakiness (SIGPIPE racing).** Bug latente desde v0.1.0: a verificação de fechamento de frontmatter usava pipeline `head -30 | tail -29 | grep -qE '^---$'` com `set -uo pipefail` ativo. Quando `grep -q` fechava o pipe após o primeiro match, `tail` recebia SIGPIPE (exit 141), e pipefail propagava 141 como exit do pipe — o `!` invertia pra "verdadeiro" → falso positivo de "frontmatter não fecha em até 30 linhas". Sintoma: ~30% de falhas espúrias em `lint.test.sh` quando rodado em tight loop (era benign em runs únicos). Fix: substituiu o pipeline por `awk` single-process. Validado: 0/20 falhas em 20 runs sucessivos.
+
+### Out of scope (decisão explícita)
+
+- **Snapshot Grafana via API** — requer credenciais Elven reais. Implementar às cegas viola "sem alucinar". Roadmap quando creds estiverem disponíveis.
+- **Fonte web custom Elven** — sem asset Elven publicado.
+- **Vale linter** — sem demanda concreta.
+- **pt-BR style guide 2026** — gap antigo, pesquisa sem fonte autoritativa nova.
+- **Templates feature Monitoring/Incident/Command Center** — docs.elven.works continua minimalista; sem instâncias ≥3.
+
 ## [0.3.0] - 2026-05-12
 
 ### Changed (breaking pra autores de PS reports)
@@ -108,7 +155,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e es
 - Tradução pt→en — repo é pt-BR-only.
 - Migração retroativa dos 12 docs legados — Fase 7 separada (PR mecânico pós-v0.1.0).
 
-[Unreleased]: https://github.com/elven-observability/elven-docs/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/elven-observability/elven-docs/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/elven-observability/elven-docs/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/elven-observability/elven-docs/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/elven-observability/elven-docs/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/elven-observability/elven-docs/releases/tag/v0.1.0

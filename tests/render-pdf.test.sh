@@ -82,6 +82,34 @@ test_one "$FIXTURES/pass-ps-incident-report.md" "client"
 test_one "$FIXTURES/pass-language-guide.md" "internal"
 test_one "$FIXTURES/pass-mermaid-and-image.md" "internal"
 
+# Bundle mode (offline Mermaid)
+test_one_bundle() {
+  local fixture="$1"
+  local out="$TMPDIR_LOCAL/$(basename "$fixture" .md)-bundle.pdf"
+
+  echo "Renderizando $(basename "$fixture") (mermaid=bundle)..."
+  if ! node "$RENDER" "$fixture" --out "$out" --mermaid bundle >/dev/null 2>&1; then
+    echo "  ${RED}✗${RESET} render falhou (bundle mode)"
+    fail_count=$((fail_count + 1))
+    return
+  fi
+  if [ ! -f "$out" ]; then
+    echo "  ${RED}✗${RESET} PDF não criado (bundle mode)"
+    fail_count=$((fail_count + 1))
+    return
+  fi
+  local magic
+  magic=$(head -c 5 "$out")
+  if [ "$magic" != "%PDF-" ]; then
+    echo "  ${RED}✗${RESET} assinatura PDF inválida (bundle mode)"
+    fail_count=$((fail_count + 1))
+    return
+  fi
+  echo "  ${GREEN}✓${RESET} OK (bundle mode)"
+}
+
+test_one_bundle "$FIXTURES/pass-mermaid-and-image.md"
+
 echo
 if [ $fail_count -gt 0 ]; then
   echo "${RED}${fail_count} falha(s) no teste de PDF.${RESET}"

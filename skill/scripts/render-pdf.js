@@ -42,13 +42,15 @@ try {
 
 function parseArgs(argv) {
   const args = argv.slice(2);
-  const opts = { input: null, out: null, theme: null };
+  const opts = { input: null, out: null, theme: null, mermaid: null };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === "--out" || a === "-o") {
       opts.out = args[++i];
     } else if (a === "--theme" || a === "-t") {
       opts.theme = args[++i];
+    } else if (a === "--mermaid" || a === "-m") {
+      opts.mermaid = args[++i];
     } else if (a === "--help" || a === "-h") {
       printHelp();
       process.exit(0);
@@ -61,17 +63,20 @@ function parseArgs(argv) {
 
 function printHelp() {
   process.stdout.write(`
-Uso: render-pdf.js <input.md> [--out <output.pdf>] [--theme <client|internal>]
+Uso: render-pdf.js <input.md> [--out <output.pdf>] [--theme <client|internal>] [--mermaid <cdn|bundle>]
 
 Opções:
-  --out, -o     Caminho do PDF de saída. Default: <input>.pdf
-  --theme, -t   client | internal. Default: 'client' se type=ps-*, senão 'internal'.
-  --help, -h    Imprime esta ajuda.
+  --out, -o       Caminho do PDF de saída. Default: <input>.pdf
+  --theme, -t     client | internal. Default: 'client' se type=ps-*, senão 'internal'.
+  --mermaid, -m   cdn (default) | bundle. 'bundle' usa mermaid local (~3MB) — funciona offline.
+                  ENV: ELVEN_MERMAID_MODE=bundle aplica como default.
+  --help, -h      Imprime esta ajuda.
 
 Exemplos:
   render-pdf.js relatorio-incidente.md
   render-pdf.js docs/instrumentacao-java.md --theme internal
   render-pdf.js report.md --out /tmp/report.pdf --theme client
+  render-pdf.js report.md --mermaid bundle           # offline-safe
 `);
 }
 
@@ -270,7 +275,41 @@ function buildHeaderTemplate(fields) {
   `;
 }
 
-async function renderPDF({ input, out, theme }) {
+function resolveMermaidMode(flag) {
+  const mode = flag || process.env.ELVEN_MERMAID_MODE || "cdn";
+  if (!["cdn", "bundle"].includes(mode)) {
+    throw new Error(`Mermaid mode inválido: '${mode}' (use 'cdn' ou 'bundle').`);
+  }
+  return mode;
+}
+
+function loadMermaidBundle() {
+  // Procura mermaid em ./node_modules/mermaid/dist/mermaid.min.js relativo ao package root
+  // ou via require.resolve.
+  try {
+    const pkgPath = require.resolve("mermaid/package.json");
+    const distDir = path.join(path.dirname(pkgPath), "dist");
+    // Tenta vários nomes (mermaid muda o asset entre versões).
+    const candidates = [
+      "mermaid.min.js",
+      "mermaid.js",
+    ];
+    for (const name of candidates) {
+      const p = path.join(distDir, name);
+      if (fs.existsSync(p)) {
+        return fs.readFileSync(p, "utf8");
+      }
+    }
+    throw new Error("mermaid.min.js não encontrado em " + distDir);
+  } catch (e) {
+    throw new Error(
+      `Não consegui carregar mermaid local: ${e.message}. ` +
+      `Rode 'npm install' no diretório do skill, ou use '--mermaid cdn'.`
+    );
+  }
+}
+
+async function renderPDF({ input, out, theme, mermaid: mermaidMode }) {
   if (!input) {
     console.error("Erro: arquivo de input obrigatório.");
     printHelp();
@@ -291,6 +330,8 @@ async function renderPDF({ input, out, theme }) {
     console.error(`Erro: theme inválido '${themeName}' (use client ou internal).`);
     process.exit(2);
   }
+
+  const mode = resolveMermaidMode(mermaidMode);
 
   const skillDir = path.resolve(__dirname, "..");
   const css = loadTheme(themeName, skillDir);
@@ -318,29 +359,52 @@ async function renderPDF({ input, out, theme }) {
 
   const cover = buildCoverHtml(fields, themeName);
 
-  // Mermaid script via CDN (loaded only if needed)
-  const mermaidScript = hasMermaid
-    ? `
-  <script type="module">
-    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
-    mermaid.initialize({
-      startOnLoad: true,
-      theme: "default",
-      themeVariables: {
-        primaryColor: "#0d1530",
-        primaryTextColor: "#0d1530",
-        primaryBorderColor: "#c95b29",
-        lineColor: "#34405c",
-        secondaryColor: "#fdf5ef",
-        tertiaryColor: "#f8f9fb"
-      },
-      flowchart: { htmlLabels: true, curve: "basis" },
-      securityLevel: "loose"
-    });
-    window.__mermaidReady__ = false;
-    mermaid.run().then(() => { window.__mermaidReady__ = true; });
-  </script>`
-    : "";
+  // Mermaid script — CDN (default, leve) OU bundle local (~3MB, offline-safe).
+  let mermaidScript = "";
+  if (hasMermaid) {
+    const initScript = `
+    <script>
+      window.__mermaidReady__ = false;
+      function __initMermaid__() {
+        if (typeof mermaid === "undefined") {
+          // Aguarda mermaid carregar; tenta de novo em 100ms.
+          setTimeout(__initMermaid__, 100);
+          return;
+        }
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: "default",
+          themeVariables: {
+            primaryColor: "#0d1530",
+            primaryTextColor: "#0d1530",
+            primaryBorderColor: "#c95b29",
+            lineColor: "#34405c",
+            secondaryColor: "#fdf5ef",
+            tertiaryColor: "#f8f9fb"
+          },
+          flowchart: { htmlLabels: true, curve: "basis" },
+          securityLevel: "loose"
+        });
+        mermaid.run().then(function() {
+          window.__mermaidReady__ = true;
+        }).catch(function(err) {
+          console.error("mermaid render error:", err);
+          window.__mermaidReady__ = true; // libera o waitFor pra não pendurar PDF
+        });
+      }
+      __initMermaid__();
+    </script>`;
+
+    if (mode === "bundle") {
+      const bundle = loadMermaidBundle();
+      // Inline bundle direto no HTML. Tag <script> antes do init.
+      mermaidScript = `\n  <script>${bundle}</script>${initScript}`;
+    } else {
+      // CDN: tag <script> assíncrona; o init aguarda mermaid existir.
+      mermaidScript = `
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>${initScript}`;
+    }
+  }
 
   const fullHtml = `<!DOCTYPE html>
 <html lang="pt-BR">

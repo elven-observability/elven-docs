@@ -70,13 +70,20 @@ lint_file() {
   local file_fail_count_before=$fail_count
   echo "${file}"
 
-  # Item 1 — Frontmatter presente (linha 1 == ---, fechamento até linha 30)
-  if [ "$(head -1 "$file")" != "---" ]; then
+  # Item 1 — Frontmatter presente (linha 1 == ---, fechamento até linha 30).
+  # Usa awk single-process pra evitar SIGPIPE race com `head | tail | grep -q`
+  # quando pipefail está ativo (grep -q fecha pipe cedo → tail recebe SIGPIPE).
+  local fm_first fm_close
+  fm_first=$(awk 'NR==1{print; exit}' "$file")
+  if [ "$fm_first" != "---" ]; then
     print_fail "1" "frontmatter ausente (linha 1 deve ser '---')"
-  elif ! head -30 "$file" | tail -29 | grep -qE '^---$'; then
-    print_fail "1" "frontmatter não fecha em até 30 linhas (esperado segundo '---')"
   else
-    print_pass
+    fm_close=$(awk 'NR>1 && NR<=30 && /^---$/{print NR; exit}' "$file")
+    if [ -z "$fm_close" ]; then
+      print_fail "1" "frontmatter não fecha em até 30 linhas (esperado segundo '---')"
+    else
+      print_pass
+    fi
   fi
 
   local fm
